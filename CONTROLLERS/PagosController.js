@@ -22,21 +22,21 @@ const pagosController = {
         }
     },
 
-    async getByViaje(req, res) {
+    async getByPedido(req, res) {
         try {
-            const { idViaje } = req.params;
-            const pagos = await pagosService.getByViaje(idViaje);
+            const { idPedido } = req.params;
+            const pagos = await pagosService.getByPedido(idPedido);
             res.json(pagos);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     },
 
-    async getByViajeAndUser(req, res) {
+    async getByPedidoAndUser(req, res) {
         try {
-            const { idViaje, idUsuario } = req.params;
-            const pago = await pagosService.getByViajeAndUser(idViaje, idUsuario);
-            if (!pago) return res.status(404).json({ error: "Pago no encontrado para este viaje y usuario" });
+            const { idPedido, idUsuario } = req.params;
+            const pago = await pagosService.getByPedidoAndUser(idPedido, idUsuario);
+            if (!pago) return res.status(404).json({ error: "Pago no encontrado para este pedido y usuario" });
             res.json(pago);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -57,11 +57,11 @@ const pagosController = {
     async updateConfirmacion(req, res) {
         try {
             const { id } = req.params;
-            const { confirmacionPasajero, confirmacionConductor } = req.body;
+            const { confirmacionCliente, confirmacionRepartidor } = req.body;
 
             const updateData = {};
-            if (confirmacionPasajero !== undefined) updateData.confirmacionPasajero = confirmacionPasajero;
-            if (confirmacionConductor !== undefined) updateData.confirmacionConductor = confirmacionConductor;
+            if (confirmacionCliente !== undefined) updateData.confirmacionCliente = confirmacionCliente;
+            if (confirmacionRepartidor !== undefined) updateData.confirmacionRepartidor = confirmacionRepartidor;
 
             const pago = await pagosService.updateConfirmacion(id, updateData);
             res.json(pago);
@@ -70,20 +70,20 @@ const pagosController = {
         }
     },
 
-    async confirmarPasajero(req, res) {
+    async confirmarCliente(req, res) {
         try {
             const { id } = req.params;
-            const pago = await pagosService.confirmarPasajero(id);
+            const pago = await pagosService.confirmarCliente(id);
             res.json(pago);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     },
 
-    async confirmarConductor(req, res) {
+    async confirmarRepartidor(req, res) {
         try {
             const { id } = req.params;
-            const pago = await pagosService.confirmarConductor(id);
+            const pago = await pagosService.confirmarRepartidor(id);
             res.json(pago);
         } catch (error) {
             const statusCode = error.code === 400 ? 400 : 500;

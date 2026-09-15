@@ -124,7 +124,7 @@ const vehiculosService = {
 
     // --- FLUJO DE APROBACIÓN DE CAMBIOS ---
 
-    // Crear una solicitud de cambio de vehículo (Conductor)
+    // Crear una solicitud de cambio de vehículo (Repartidor)
     async crearSolicitudCambio(idVehiculo, data) {
         // Verificar que el vehículo existe
         const vehiculo = await this.getById(idVehiculo);

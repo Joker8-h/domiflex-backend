@@ -29,16 +29,15 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 const authRoutes = require('./ROUTES/Authroutes');
 const vehiculosRoutes = require('./ROUTES/VehiculosRoutes');
 const rutasRoutes = require('./ROUTES/RutasRoutes');
-const viajesRoutes = require('./ROUTES/ViajesRoutes');
-const reservasRoutes = require('./ROUTES/ReservasRoutes');
+const pedidosRoutes = require('./ROUTES/PedidosRoutes');
 const pagosRoutes = require('./ROUTES/PagosRoutes');
 const chatRoutes = require('./ROUTES/ChatRoutes');
 const calificacionesRoutes = require('./ROUTES/CalificacionesRoutes');
 const suscripcionesRoutes = require('./ROUTES/SuscripcionesRoutes');
 const rolesRoutes = require('./ROUTES/RolesRoutes');
 const paradasRoutes = require('./ROUTES/ParadasRoutes');
-const viajeTramosRoutes = require('./ROUTES/ViajeTramosRoutes');
-const planesConductorRoutes = require('./ROUTES/PlanesConductorRoutes');
+const pedidoParadasRoutes = require('./ROUTES/PedidoParadasRoutes');
+const planesRepartidorRoutes = require('./ROUTES/PlanesRepartidorRoutes');
 const iaRutasLogRoutes = require('./ROUTES/IaRutasLogRoutes');
 const documentacionRoutes = require('./ROUTES/DocumentacionRoutes');
 const notificacionesRoutes = require('./ROUTES/NotificacionesRoutes');
@@ -50,24 +49,21 @@ const reportesPagoRoutes = require('./ROUTES/ReportesPagoRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/vehiculos', vehiculosRoutes);
 app.use('/api/rutas', rutasRoutes);
-app.use('/api/viajes', viajesRoutes);
-app.use('/api/reservas', reservasRoutes);
+app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/pagos', pagosRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/calificaciones', calificacionesRoutes);
 app.use('/api/suscripciones', suscripcionesRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/paradas', paradasRoutes);
-app.use('/api/viaje-tramos', viajeTramosRoutes);
-app.use('/api/planes-conductor', planesConductorRoutes);
+app.use('/api/pedido-paradas', pedidoParadasRoutes);
+app.use('/api/planes-repartidor', planesRepartidorRoutes);
 app.use('/api/ia-rutas-log', iaRutasLogRoutes);
 app.use('/api/documentacion', documentacionRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/estadisticas', estadisticasRoutes);
 app.use('/api/contacto', contactoRoutes);
 app.use('/api/reportes-pago', reportesPagoRoutes);
-
-
 
 
 

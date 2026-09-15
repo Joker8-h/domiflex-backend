@@ -30,11 +30,15 @@ async function run() {
             console.log(`Calificacion ID: ${c.idCalificacion}, Calificado ID: ${c.idCalificado}, Nombre: "${u?.nombre}", Rol: "${rName}", Puntos: ${c.puntuacion}`);
         });
 
-        const conductorRolesOutput = roles.filter(r => r.nombre.toUpperCase().includes('COND'));
-        console.log("\nRoles que parecen ser de CONDUCTOR:", JSON.stringify(conductorRolesOutput));
+        const repartidorRolesOutput = roles.filter(r => r.nombre.toUpperCase().includes('REPART'));
+        console.log("\nRoles que parecen ser de REPARTIDOR:", JSON.stringify(repartidorRolesOutput));
 
-        const viajerRolesOutput = roles.filter(r => r.nombre.toUpperCase().includes('VIAJ') || r.nombre.toUpperCase().includes('PASAJ'));
-        console.log("Roles que parecen ser de VIAJERO:", JSON.stringify(viajerRolesOutput));
+        const clienteRolesOutput = roles.filter(r => r.nombre.toUpperCase().includes('CLIENT') || r.nombre.toUpperCase().includes('COMERCIO'));
+        console.log("Roles que parecen ser de CLIENTE/COMERCIO:", JSON.stringify(clienteRolesOutput));
+
+        console.log("\n--- DIAGNÓSTICO DE PEDIDOS ---");
+        const totalPedidos = await prisma.pedidos.count();
+        console.log("Total Pedidos:", totalPedidos);
 
     } catch (e) {
         console.error("ERROR EN DEBUG:", e);

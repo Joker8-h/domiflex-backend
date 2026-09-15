@@ -8,9 +8,9 @@ const chatService = {
     async initConversacion(data) {
         const existente = await prisma.conversaciones.findFirst({
             where: {
-                idViaje: parseInt(data.idViaje),
-                idPasajero: parseInt(data.idPasajero),
-                idConductor: parseInt(data.idConductor)
+                idPedido: parseInt(data.idPedido),
+                idCliente: parseInt(data.idCliente),
+                idRepartidor: parseInt(data.idRepartidor)
             }
         });
 
@@ -18,9 +18,9 @@ const chatService = {
 
         return await prisma.conversaciones.create({
             data: {
-                idViaje: parseInt(data.idViaje),
-                idPasajero: parseInt(data.idPasajero),
-                idConductor: parseInt(data.idConductor),
+                idPedido: parseInt(data.idPedido),
+                idCliente: parseInt(data.idCliente),
+                idRepartidor: parseInt(data.idRepartidor),
                 estado: 'ACTIVA'
             }
         });
@@ -43,9 +43,9 @@ const chatService = {
             });
 
             // El destinatario es quien NO envió el mensaje
-            const idDestinatario = conversacion.idPasajero === parseInt(data.idRemitente)
-                ? conversacion.idConductor
-                : conversacion.idPasajero;
+            const idDestinatario = conversacion.idCliente === parseInt(data.idRemitente)
+                ? conversacion.idRepartidor
+                : conversacion.idCliente;
 
             const remitente = await prisma.usuarios.findUnique({
                 where: { idUsuarios: parseInt(data.idRemitente) }
@@ -65,18 +65,18 @@ const chatService = {
     },
 
     async getConversacionesUsuario(idUsuario) {
-        // Buscar conversaciones donde el usuario es pasajero O conductor
+        // Buscar conversaciones donde el usuario es cliente O repartidor
         return await prisma.conversaciones.findMany({
             where: {
                 OR: [
-                    { idPasajero: idUsuario },
-                    { idConductor: idUsuario }
+                    { idCliente: idUsuario },
+                    { idRepartidor: idUsuario }
                 ]
             },
             include: {
-                viaje: { select: { idViajes: true, fechaHoraSalida: true } },
-                pasajero: { select: { nombre: true, email: true } },
-                conductor: { select: { nombre: true, email: true } },
+                pedido: { select: { idPedido: true, creadoEn: true } },
+                cliente: { select: { nombre: true, email: true } },
+                repartidor: { select: { nombre: true, email: true } },
                 mensajes: {
                     take: 1,
                     orderBy: { fechaEnvio: 'desc' }
@@ -96,9 +96,9 @@ const chatService = {
         return await prisma.conversaciones.findUnique({
             where: { idConversacion: parseInt(id) },
             include: {
-                viaje: { select: { idViajes: true, fechaHoraSalida: true, ruta: true } },
-                pasajero: { select: { nombre: true, email: true, fotoPerfil: true } },
-                conductor: { select: { nombre: true, email: true, fotoPerfil: true } },
+                pedido: { select: { idPedido: true, creadoEn: true, ruta: true } },
+                cliente: { select: { nombre: true, email: true, fotoPerfil: true } },
+                repartidor: { select: { nombre: true, email: true, fotoPerfil: true } },
                 mensajes: {
                     orderBy: { fechaEnvio: 'asc' }
                 }

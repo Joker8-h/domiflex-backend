@@ -76,56 +76,56 @@ class SocketService {
                 }, "Usuario Desconectado", `${userInfo?.nombre || 'Usuario'} ha salido del sistema.`);
             });
 
-            // ── Lógica de Viajes en Tiempo Real ──────────────────────────────────
+            // ── Lógica de Pedidos en Tiempo Real ──────────────────────────────────
 
-            // Evento para unirse a un viaje específico (sala)
-            socket.on("join_trip", (data) => {
-                const { idViaje } = data;
-                if (!idViaje) return;
+            // Evento para unirse a un pedido específico (sala)
+            socket.on("join_pedido", (data) => {
+                const { idPedido } = data;
+                if (!idPedido) return;
                 
-                const roomName = `trip_${idViaje}`;
+                const roomName = `pedido_${idPedido}`;
                 socket.join(roomName);
-                console.log(`Usuario ${nombre} se unió al viaje: ${roomName}`);
+                console.log(`Usuario ${nombre} se unió al pedido: ${roomName}`);
                 
                 // Notificar a los demás en la sala (opcional)
-                socket.to(roomName).emit("user_joined_trip", {
+                socket.to(roomName).emit("user_joined_pedido", {
                     userId: id,
                     nombre: nombre,
                     rol: rol
                 });
             });
 
-            // Evento para abandonar la sala del viaje
-            socket.on("leave_trip", (data) => {
-                const { idViaje } = data;
-                if (idViaje) {
-                    socket.leave(`trip_${idViaje}`);
-                    console.log(`Usuario ${nombre} salió del viaje: trip_${idViaje}`);
+            // Evento para abandonar la sala del pedido
+            socket.on("leave_pedido", (data) => {
+                const { idPedido } = data;
+                if (idPedido) {
+                    socket.leave(`pedido_${idPedido}`);
+                    console.log(`Usuario ${nombre} salió del pedido: pedido_${idPedido}`);
                 }
             });
 
-            // Evento para que el conductor envíe su ubicación
-            socket.on("driver_location_update", (data) => {
-                const { idViaje, lat, lng, rumbo } = data;
+            // Evento para que el repartidor envíe su ubicación
+            socket.on("repartidor_location_update", (data) => {
+                const { idPedido, lat, lng, rumbo } = data;
                 
-                if (!idViaje || !lat || !lng) return;
+                if (!idPedido || !lat || !lng) return;
 
-                // Solo permitir si el usuario es conductor (seguridad básica)
-                // Nota: En una app real, verificaríamos que sea EL conductor asignado a ese viaje
-                if (rol !== "CONDUCTOR") return;
+                // Solo permitir si el usuario es repartidor (seguridad básica)
+                // Nota: En una app real, verificaríamos que sea EL repartidor asignado a ese pedido
+                if (rol !== "REPARTIDOR") return;
 
-                const roomName = `trip_${idViaje}`;
+                const roomName = `pedido_${idPedido}`;
                 
-                // Reenviar ubicación a todos los pasajeros en la sala
+                // Reenviar ubicación a todos los clientes en la sala
                 this.io.to(roomName).emit("location_updated", {
-                    idViaje,
+                    idPedido,
                     lat,
                     lng,
                     rumbo,
                     timestamp: new Date()
                 });
                 
-                console.log(`Ubicación enviada viaje ${idViaje}: ${lat}, ${lng}`);
+                console.log(`Ubicación enviada pedido ${idPedido}: ${lat}, ${lng}`);
             });
 
         });

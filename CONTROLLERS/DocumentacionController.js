@@ -25,12 +25,12 @@ const documentacionController = {
                 console.log("[DocumentacionController] Detectada imagen Base64, subiendo a Cloudinary...");
                 try {
                     data.imagenFrontalUrl = await cloudinaryService.subirImagen(data.imagenFrontal, "documentacion");
-                    console.log("[DocumentacionController] Imagen subida exitosamente:", data.imagenFrontalUrl);
+                    console.log("[DocumentacionController] Imagen cargada a Cloudinary exitosamente:", data.imagenFrontalUrl);
                 } catch (error) {
                     console.error("[DocumentacionController] Error subiendo imagen a Cloudinary:", error.message);
                 }
             } else {
-                console.log("[DocumentacionController] No se requiere subida a Cloudinary (ya hay URL o no hay Base64)");
+                console.log("[DocumentacionController] No se requiere carga a Cloudinary (ya hay URL o no hay Base64)");
             }
 
             // Normalizar campos obligatorios si no vienen pero hay OCR

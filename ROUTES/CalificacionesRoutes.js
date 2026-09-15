@@ -6,8 +6,8 @@ const verificarToken = require('../MIDDLEWARE/authmiddleware');
 router.use(verificarToken);
 
 router.post('/', calificacionesController.create);
-router.get('/top-conductores', calificacionesController.getTopConductores);
-router.get('/top-viajeros', calificacionesController.getTopViajeros);
+router.get('/top-repartidores', calificacionesController.getTopRepartidores);
+router.get('/top-clientes', calificacionesController.getTopClientes);
 router.get('/:idUsuario/promedio', calificacionesController.getPromedio);
 router.get('/:id', calificacionesController.getById);
 

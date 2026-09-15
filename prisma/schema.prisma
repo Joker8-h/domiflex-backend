@@ -9,7 +9,9 @@ datasource db {
 
 /**
  * =======================
- * ENUMS
+ * ENUMS — DomiFlex (domicilios)
+ * El cliente crea el pedido, paga en efectivo,
+ * la comisión de plataforma depende de la distancia.
  * =======================
  */
 
@@ -30,8 +32,8 @@ enum TipoMensaje {
 }
 
 enum TipoPago {
-  VIAJE
-  PLAN_CONDUCTOR
+  PEDIDO
+  PLAN_REPARTIDOR
   EFECTIVO
   TRANSFERENCIA
 }
@@ -40,21 +42,28 @@ enum EstadoPago {
   PENDIENTE
   PAGADO
   FALLIDO
-  CONFIRMADO_PASAJERO
-  CONFIRMADO_CONDUCTOR
+  CONFIRMADO_CLIENTE
+  CONFIRMADO_REPARTIDOR
   COMPLETADO
 }
 
 enum TipoParada {
-  SUBIDA
-  BAJADA
+  RECOGIDA
+  ENTREGA
   AMBAS
+}
+
+enum TipoVehiculo {
+  MOTO
+  BICICLETA
+  CARRO
+  FURGON
 }
 
 enum TipoPlan {
   SEMANAL
   MENSUAL
-  POR_VIAJE
+  POR_PEDIDO
 }
 
 enum EstadoRuta {
@@ -69,23 +78,18 @@ enum EstadoSuscripcion {
   CANCELADA
 }
 
-enum EstadoUsuarioViaje {
-  RESERVADO
+enum EstadoPedido {
+  CREADO
+  ASIGNADO
+  RECOGIENDO
+  EN_CAMINO
+  ENTREGADO
   CANCELADO
-  COMPLETADO
 }
 
 enum EstadoVehiculo {
   ACTIVO
   INACTIVO
-}
-
-enum EstadoViaje {
-  CREADO
-  PUBLICADO
-  EN_CURSO
-  FINALIZADO
-  CANCELADO
 }
 
 enum EstadoDocumentacion {
@@ -135,16 +139,19 @@ model Usuarios {
   vehiculos      Vehiculos[]
   pagos          Pagos[]
   mensajes       Mensajes[]
-  suscripciones  SuscripcionesConductor[] // Usa el plan a través de Suscripciones
-  viajes         UsuarioViaje[]
+  suscripciones  SuscripcionesRepartidor[]
   notificaciones Notificacion[]
   sesiones       SesionesUsuario[]
+
+  pedidosCliente    Pedidos[] @relation("PedidoCliente")
+  pedidosRepartidor Pedidos[] @relation("PedidoRepartidor")
+  pedidosComercio   Pedidos[] @relation("PedidoComercio")
 
   calificacionesDadas     Calificaciones[] @relation("Calificador")
   calificacionesRecibidas Calificaciones[] @relation("Calificado")
 
-  conversacionesPasajero  Conversaciones[] @relation("ConversacionPasajero")
-  conversacionesConductor Conversaciones[] @relation("ConversacionConductor")
+  conversacionesCliente   Conversaciones[] @relation("ConversacionCliente")
+  conversacionesRepartidor Conversaciones[] @relation("ConversacionRepartidor")
 
   documentacion Documentacion?
   reportesPago  ReportesPago[]
@@ -154,7 +161,7 @@ model Usuarios {
   otpExpiry       DateTime?
   isEmailVerified Boolean   @default(false)
   googleId        String?   @unique @db.VarChar(255)
-  
+
   // Campos para recuperación de contraseña
   resetToken       String?   @db.VarChar(255)
   resetTokenExpiry DateTime?
@@ -173,6 +180,8 @@ model Vehiculos {
   marca     String?        @db.VarChar(50)
   modelo    String?        @db.VarChar(50)
   placa     String?        @unique @db.VarChar(20)
+  tipo      TipoVehiculo   @default(MOTO)
+  // Capacidad de carga en kg (domicilios)
   capacidad Int
   estado    EstadoVehiculo @default(ACTIVO)
 
@@ -185,7 +194,7 @@ model Vehiculos {
   placaValidada Boolean @default(false)
 
   usuario Usuarios @relation(fields: [idUsuario], references: [idUsuarios])
-  viajes  Viajes[]
+  pedidos Pedidos[]
 
   solicitudes SolicitudCambioVehiculo[]
 }
@@ -202,7 +211,7 @@ model Rutas {
   creadoEn DateTime @default(now())
 
   paradas Paradas[]
-  viajes  Viajes[]
+  pedidos Pedidos[]
   iaLogs  IaRutasLog[]
 }
 
@@ -219,90 +228,72 @@ model Paradas {
 
   ruta Rutas @relation(fields: [idRuta], references: [idRuta])
 
-  usuarioViajeSubida UsuarioViaje[] @relation("ParadaSubida")
-  usuarioViajeBajada UsuarioViaje[] @relation("ParadaBajada")
-
-  tramosInicio ViajeTramos[] @relation("TramoInicio")
-  tramosFin    ViajeTramos[] @relation("TramoFin")
+  pedidoParadas PedidoParadas[]
 }
 
-model Viajes {
-  idViajes    Int @id @default(autoincrement())
-  idRuta      Int
-  idVehiculos Int
+model Pedidos {
+  idPedido     Int  @id @default(autoincrement())
+  idCliente    Int
+  idRepartidor Int?
+  idComercio   Int?
+  idRuta       Int?
+  idVehiculo   Int?
 
-  fechaHoraSalida  DateTime
-  cuposTotales     Int
-  cuposDisponibles Int
+  // Punto de recogida (comercio / origen)
+  nombreRecogida String?  @db.VarChar(255)
+  dirRecogida    String?  @db.VarChar(255)
+  latRecogida    Decimal? @db.Decimal(10, 8)
+  lngRecogida    Decimal? @db.Decimal(11, 8)
 
-  estado   EstadoViaje @default(CREADO)
-  precio   Decimal?    @db.Decimal(10, 2)
+  // Punto de entrega (cliente / destino)
+  nombreEntrega String?  @db.VarChar(255)
+  dirEntrega    String?  @db.VarChar(255)
+  latEntrega    Decimal? @db.Decimal(10, 8)
+  lngEntrega    Decimal? @db.Decimal(11, 8)
+
+  detallePedido String?  @db.VarChar(500)
+
+  distanciaKm         Decimal? @db.Decimal(10, 2)
+  subtotal            Decimal? @db.Decimal(10, 2)
+  comisionPlataforma  Decimal? @db.Decimal(10, 2)
+  total               Decimal? @db.Decimal(10, 2)
+
+  tipoPago TipoPago    @default(EFECTIVO)
+  estado   EstadoPedido @default(CREADO)
   creadoEn DateTime    @default(now())
 
-  ruta     Rutas     @relation(fields: [idRuta], references: [idRuta])
-  vehiculo Vehiculos @relation(fields: [idVehiculos], references: [idVehiculos])
+  cliente    Usuarios  @relation("PedidoCliente", fields: [idCliente], references: [idUsuarios])
+  repartidor Usuarios? @relation("PedidoRepartidor", fields: [idRepartidor], references: [idUsuarios])
+  comercio   Usuarios? @relation("PedidoComercio", fields: [idComercio], references: [idUsuarios])
+  ruta       Rutas?    @relation(fields: [idRuta], references: [idRuta])
+  vehiculo   Vehiculos? @relation(fields: [idVehiculo], references: [idVehiculos])
 
-  usuarios       UsuarioViaje[]
+  paradas        PedidoParadas[]
   calificaciones Calificaciones[]
   conversaciones Conversaciones[]
-  tramos         ViajeTramos[]
   pagos          Pagos[]
+
+  @@map("Pedidos")
 }
 
-model UsuarioViaje {
-  idUsuarios Int
-  idViajes   Int
+model PedidoParadas {
+  idPedido Int
+  idParada Int
 
-  // Paradas referenciadas (ahora OPCIONALES)
-  idParadaSubida Int?
-  idParadaBajada Int?
+  orden      Int
+  tipo       TipoParada @default(ENTREGA)
+  completada Boolean    @default(false)
 
-  // Coordenadas personalizadas de SUBIDA
-  latSubida    Decimal? @db.Decimal(10, 8)
-  lngSubida    Decimal? @db.Decimal(11, 8)
-  nombreSubida String?  @db.VarChar(255)
+  pedido Pedidos @relation(fields: [idPedido], references: [idPedido])
+  parada Paradas @relation(fields: [idParada], references: [idParada])
 
-  // Coordenadas personalizadas de BAJADA
-  latBajada    Decimal? @db.Decimal(10, 8)
-  lngBajada    Decimal? @db.Decimal(11, 8)
-  nombreBajada String?  @db.VarChar(255)
-
-  asientosReservados Int      @default(1)
-  distanciaRecorrida Decimal? @db.Decimal(10, 2)
-  precioFinal        Decimal? @db.Decimal(10, 2)
-  comisionPlataforma Decimal? @db.Decimal(10, 2)
-
-  estado   EstadoUsuarioViaje @default(RESERVADO)
-  creadoEn DateTime           @default(now())
-
-  usuario Usuarios @relation(fields: [idUsuarios], references: [idUsuarios])
-  viaje   Viajes   @relation(fields: [idViajes], references: [idViajes])
-
-  paradaSubida Paradas? @relation("ParadaSubida", fields: [idParadaSubida], references: [idParada])
-  paradaBajada Paradas? @relation("ParadaBajada", fields: [idParadaBajada], references: [idParada])
-
-  @@id([idUsuarios, idViajes])
-}
-
-model ViajeTramos {
-  idViaje        Int
-  idParadaInicio Int
-  idParadaFin    Int
-
-  asientosTotales  Int
-  asientosOcupados Int @default(0)
-
-  viaje Viajes @relation(fields: [idViaje], references: [idViajes])
-
-  paradaInicio Paradas @relation("TramoInicio", fields: [idParadaInicio], references: [idParada])
-  paradaFin    Paradas @relation("TramoFin", fields: [idParadaFin], references: [idParada])
-
-  @@id([idViaje, idParadaInicio, idParadaFin])
+  @@id([idPedido, idParada])
+  @@map("PedidoParadas")
 }
 
 model Calificaciones {
   idCalificacion Int @id @default(autoincrement())
-  idViaje        Int
+  idPedido       Int
   idCalificador  Int
   idCalificado   Int
 
@@ -311,23 +302,23 @@ model Calificaciones {
 
   creadoEn DateTime @default(now())
 
-  viaje       Viajes   @relation(fields: [idViaje], references: [idViajes])
+  pedido      Pedidos  @relation(fields: [idPedido], references: [idPedido])
   calificador Usuarios @relation("Calificador", fields: [idCalificador], references: [idUsuarios])
   calificado  Usuarios @relation("Calificado", fields: [idCalificado], references: [idUsuarios])
 }
 
 model Conversaciones {
   idConversacion Int @id @default(autoincrement())
-  idViaje        Int
-  idPasajero     Int
-  idConductor    Int
+  idPedido       Int
+  idCliente      Int
+  idRepartidor   Int
 
   fechaCreacion DateTime           @default(now())
   estado        EstadoConversacion
 
-  viaje     Viajes   @relation(fields: [idViaje], references: [idViajes])
-  pasajero  Usuarios @relation("ConversacionPasajero", fields: [idPasajero], references: [idUsuarios])
-  conductor Usuarios @relation("ConversacionConductor", fields: [idConductor], references: [idUsuarios])
+  pedido     Pedidos  @relation(fields: [idPedido], references: [idPedido])
+  cliente    Usuarios @relation("ConversacionCliente", fields: [idCliente], references: [idUsuarios])
+  repartidor Usuarios @relation("ConversacionRepartidor", fields: [idRepartidor], references: [idUsuarios])
 
   mensajes Mensajes[]
 }
@@ -348,37 +339,39 @@ model Mensajes {
 
 model Pagos {
   idPago                Int        @id @default(autoincrement())
-  idViaje               Int
+  idPedido              Int
   idUsuario             Int
   tipoPago              TipoPago
   monto                 Decimal?   @db.Decimal(10, 2)
   estado                EstadoPago @default(PENDIENTE)
-  confirmacionPasajero  Boolean    @default(false)
-  confirmacionConductor Boolean    @default(false)
+  confirmacionCliente   Boolean    @default(false)
+  confirmacionRepartidor Boolean   @default(false)
   fechaPago             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
   usuario Usuarios @relation(fields: [idUsuario], references: [idUsuarios])
-  viaje   Viajes   @relation(fields: [idViaje], references: [idViajes])
+  pedido  Pedidos  @relation(fields: [idPedido], references: [idPedido])
 
-  @@unique([idViaje, idUsuario])
+  @@unique([idPedido, idUsuario])
 }
 
-model PlanesConductor {
+model PlanesRepartidor {
   idPlan      Int     @id @default(autoincrement())
   nombre      String? @db.VarChar(50)
   descripcion String? @db.VarChar(255)
 
   tipo               TipoPlan
   precio             Decimal? @db.Decimal(10, 2)
-  maxViajes          Int?
+  maxPedidos         Int?
   porcentajeComision Decimal? @db.Decimal(5, 2)
   activo             Boolean  @default(true)
 
-  suscripciones SuscripcionesConductor[]
+  suscripciones SuscripcionesRepartidor[]
+
+  @@map("PlanesRepartidor")
 }
 
-model SuscripcionesConductor {
+model SuscripcionesRepartidor {
   idSuscripcion Int @id @default(autoincrement())
   idUsuario     Int
   idPlan        Int
@@ -389,8 +382,10 @@ model SuscripcionesConductor {
   estado               EstadoSuscripcion @default(ACTIVA)
   renovacionAutomatica Boolean           @default(false)
 
-  usuario Usuarios        @relation(fields: [idUsuario], references: [idUsuarios])
-  plan    PlanesConductor @relation(fields: [idPlan], references: [idPlan])
+  usuario Usuarios         @relation(fields: [idUsuario], references: [idUsuarios])
+  plan    PlanesRepartidor @relation(fields: [idPlan], references: [idPlan])
+
+  @@map("SuscripcionesRepartidor")
 }
 
 model IaRutasLog {
@@ -432,7 +427,7 @@ model Notificacion {
   mensaje        String   @db.Text
   leido          Boolean  @default(false)
   fechaCreacion  DateTime @default(now())
-  tipo           String   @db.VarChar(50) // 'SISTEMA', 'VIAJE', 'PAGO', 'MENSAJE'
+  tipo           String   @db.VarChar(50) // 'SISTEMA', 'PEDIDO', 'PAGO', 'MENSAJE'
 
   usuario Usuarios @relation(fields: [idUsuario], references: [idUsuarios])
 

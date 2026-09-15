@@ -9,10 +9,10 @@ class EstadisticasController {
             // Si es admin, puede ver estadísticas globales
             if (rol.includes('ADMIN')) {
                 if (!periodo) {
-                    const hoy = await estadisticasService.obtenerGananciasConductor(null, 'diario', true);
-                    const esteMes = await estadisticasService.obtenerGananciasConductor(null, 'mensual', true);
+                    const hoy = await estadisticasService.obtenerGananciasRepartidor(null, 'diario', true);
+                    const esteMes = await estadisticasService.obtenerGananciasRepartidor(null, 'mensual', true);
                     // 'semana' is simulated or uses 'mensual' as fallback if service doesn't specifically handle 'semanal' 
-                    const estaSemana = await estadisticasService.obtenerGananciasConductor(null, 'semanal', true).catch(() => ({ total: 0 }));
+                    const estaSemana = await estadisticasService.obtenerGananciasRepartidor(null, 'semanal', true).catch(() => ({ total: 0 }));
 
                     return res.json({
                         hoy: hoy.total || 0,
@@ -20,16 +20,16 @@ class EstadisticasController {
                         esteMes: esteMes.total || 0
                     });
                 }
-                const data = await estadisticasService.obtenerGananciasConductor(id, periodo, true);
+                const data = await estadisticasService.obtenerGananciasRepartidor(id, periodo, true);
                 return res.json(data);
             }
 
-            // Si es conductor, ver sus ganancias
-            if (rol.includes('CONDUCTOR')) {
+            // Si es repartidor, ver sus ganancias
+            if (rol.includes('REPARTIDOR')) {
                 if (!periodo) {
-                    const hoy = await estadisticasService.obtenerGananciasConductor(id, 'diario', false);
-                    const esteMes = await estadisticasService.obtenerGananciasConductor(id, 'mensual', false);
-                    const estaSemana = await estadisticasService.obtenerGananciasConductor(id, 'semanal', false).catch(() => ({ total: 0 }));
+                    const hoy = await estadisticasService.obtenerGananciasRepartidor(id, 'diario', false);
+                    const esteMes = await estadisticasService.obtenerGananciasRepartidor(id, 'mensual', false);
+                    const estaSemana = await estadisticasService.obtenerGananciasRepartidor(id, 'semanal', false).catch(() => ({ total: 0 }));
 
                     return res.json({
                         hoy: hoy.total || 0,
@@ -37,16 +37,16 @@ class EstadisticasController {
                         esteMes: esteMes.total || 0
                     });
                 }
-                const data = await estadisticasService.obtenerGananciasConductor(id, periodo, false);
+                const data = await estadisticasService.obtenerGananciasRepartidor(id, periodo, false);
                 return res.json(data);
             }
 
-            // Si es viajero/pasajero, ver sus gastos
-            if (rol.includes('VIAJERO') || rol.includes('PASAJERO')) {
+            // Si es cliente/comercio, ver sus gastos
+            if (rol.includes('CLIENTE') || rol.includes('COMERCIO')) {
                 if (!periodo) {
-                    const hoy = await estadisticasService.obtenerGastosPasajero(id, 'diario', false);
-                    const esteMes = await estadisticasService.obtenerGastosPasajero(id, 'mensual', false);
-                    const estaSemana = await estadisticasService.obtenerGastosPasajero(id, 'semanal', false).catch(() => ({ total: 0 }));
+                    const hoy = await estadisticasService.obtenerGastosCliente(id, 'diario', false);
+                    const esteMes = await estadisticasService.obtenerGastosCliente(id, 'mensual', false);
+                    const estaSemana = await estadisticasService.obtenerGastosCliente(id, 'semanal', false).catch(() => ({ total: 0 }));
 
                     return res.json({
                         hoy: hoy.total || 0,
@@ -54,7 +54,7 @@ class EstadisticasController {
                         esteMes: esteMes.total || 0
                     });
                 }
-                const data = await estadisticasService.obtenerGastosPasajero(id, periodo, false);
+                const data = await estadisticasService.obtenerGastosCliente(id, periodo, false);
                 return res.json(data);
             }
 
@@ -82,7 +82,7 @@ class EstadisticasController {
         }
     }
 
-    async getResumenViajes(req, res) {
+    async getResumenPedidos(req, res) {
         try {
             const { id, rol } = req.user;
             const { periodo } = req.query;
@@ -90,16 +90,16 @@ class EstadisticasController {
             // Si se pasa periodo, devolvemos historial para gráficas
             const isGlobal = rol.includes('ADMIN');
             if (periodo) {
-                const data = await estadisticasService.obtenerHistorialViajes(id, rol, periodo, isGlobal);
+                const data = await estadisticasService.obtenerHistorialPedidos(id, rol, periodo, isGlobal);
                 return res.json(data);
             }
 
             // Si no, devolvemos el resumen simple
-            const data = await estadisticasService.obtenerResumenViajes(id, rol, isGlobal);
+            const data = await estadisticasService.obtenerResumenPedidos(id, rol, isGlobal);
             res.json(data);
         } catch (error) {
-            console.error("Error en getResumenViajes:", error);
-            res.status(500).json({ message: "Error al obtener resumen de viajes" });
+            console.error("Error en getResumenPedidos:", error);
+            res.status(500).json({ message: "Error al obtener resumen de pedidos" });
         }
     }
 
@@ -108,7 +108,7 @@ class EstadisticasController {
             const { id, rol } = req.user;
             const isGlobal = rol.includes('ADMIN');
 
-            if (!rol.includes('CONDUCTOR') && !rol.includes('ADMIN')) {
+            if (!rol.includes('REPARTIDOR') && !rol.includes('ADMIN')) {
                 return res.status(403).json({ message: "No tienes permiso para ver mejores rutas" });
             }
 

@@ -114,7 +114,7 @@ const authService = {
 
         // 2. Resolver el Rol (String -> ID)
 
-        let nombreRol = rol || "PASAJERO";
+        let nombreRol = rol || "CLIENTE";
         let rolDb = await prisma.roles.findUnique({
             where: { nombre: nombreRol }
         });
@@ -154,7 +154,7 @@ const authService = {
             await notificacionesService.crearNotificacion({
                 idUsuario: newUsuario.idUsuarios,
                 titulo: "¡Bienvenido a MOVI!",
-                mensaje: `Hola ${newUsuario.nombre}, gracias por registrarte. ¡Esperamos que disfrutes de tus viajes!`,
+                mensaje: `Hola ${newUsuario.nombre}, gracias por registrarte. ¡Esperamos que disfrutes de tus pedidos!`,
                 tipo: "SISTEMA"
             });
         } catch (notifError) {
@@ -311,11 +311,11 @@ const authService = {
         return users;
     },
 
-    /** Lista solo conductores (excluye ADMIN) */
-    async obtenerConductores() {
+    /** Lista solo repartidores (excluye ADMIN) */
+    async obtenerRepartidores() {
         return await prisma.usuarios.findMany({
             where: {
-                rol: { nombre: 'CONDUCTOR' }
+                rol: { nombre: 'REPARTIDOR' }
             },
             select: {
                 idUsuarios: true,
@@ -338,11 +338,11 @@ const authService = {
         });
     },
 
-    /** Lista solo pasajeros (excluye CONDUCTOR y ADMIN) */
-    async obtenerPasajeros() {
+    /** Lista solo clientes (excluye REPARTIDOR y ADMIN) */
+    async obtenerClientes() {
         return await prisma.usuarios.findMany({
             where: {
-                rol: { nombre: 'PASAJERO' }
+                rol: { nombre: 'CLIENTE' }
             },
             select: {
                 idUsuarios: true,
@@ -592,12 +592,12 @@ const authService = {
                 } else {
                     // 4. Crear nuevo usuario si no existe
                     let rolDb = await prisma.roles.findUnique({
-                        where: { nombre: "PASAJERO" }
+                        where: { nombre: "CLIENTE" }
                     });
 
                     if (!rolDb) {
                         rolDb = await prisma.roles.create({
-                            data: { nombre: "PASAJERO" }
+                            data: { nombre: "CLIENTE" }
                         });
                     }
 
@@ -693,12 +693,12 @@ const authService = {
                 } else {
                     // 4. Crear nuevo usuario si no existe
                     let rolDb = await prisma.roles.findUnique({
-                        where: { nombre: "PASAJERO" }
+                        where: { nombre: "CLIENTE" }
                     });
 
                     if (!rolDb) {
                         rolDb = await prisma.roles.create({
-                            data: { nombre: "PASAJERO" }
+                            data: { nombre: "CLIENTE" }
                         });
                     }
 

@@ -1,0 +1,36 @@
+const express = require('express');
+const router = express.Router();
+const pedidosController = require('../CONTROLLERS/PedidosController');
+const verificarToken = require('../MIDDLEWARE/authmiddleware');
+const authorize = require('../MIDDLEWARE/role.middleware');
+
+router.use(verificarToken);
+
+// Crear pedido: Cliente, Comercio, Admin (la creación vive en PedidosController.crearPedido)
+router.post('/', authorize(['CLIENTE', 'COMERCIO', 'ADMIN', 'REPARTIDOR']), pedidosController.crearPedido);
+
+// Buscar pedidos: Público autenticado
+router.get('/buscar', pedidosController.search);
+
+// Ver mis pedidos (Repartidor / Cliente / Comercio)
+router.get('/mis-pedidos', authorize(['REPARTIDOR', 'CLIENTE', 'COMERCIO', 'ADMIN']), pedidosController.getMisPedidos);
+
+// Asignar repartidor
+router.post('/:id/asignar', authorize(['REPARTIDOR', 'ADMIN', 'COMERCIO']), pedidosController.asignar);
+
+// Cambiar estado (ASIGNADO, RECOGIENDO, EN_CAMINO, ENTREGADO)
+router.post('/:id/estado', authorize(['REPARTIDOR', 'ADMIN']), pedidosController.cambiarEstado);
+
+// Cancelar pedido
+router.post('/:id/cancelar', authorize(['REPARTIDOR', 'CLIENTE', 'COMERCIO', 'ADMIN']), pedidosController.cancelar);
+
+// Estimar precio de entrega
+router.get('/:id/estimar-precio', pedidosController.estimarPrecio);
+
+// Ver detalle pedido
+router.get('/:id', pedidosController.getById);
+
+// Estadísticas de pedidos por día
+router.get('/dia/:dia', authorize(['ADMIN']), pedidosController.getPedidosPorDia);
+
+module.exports = router;

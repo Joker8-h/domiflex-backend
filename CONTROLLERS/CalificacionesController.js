@@ -5,6 +5,7 @@ const calificacionesController = {
         try {
             const idCalificador = req.user.id;
             const data = { ...req.body, idCalificador };
+            // DomiFlex: usa idPedido según schema.prisma
             const nueva = await calificacionesService.create(data);
             res.json(nueva);
         } catch (error) {
@@ -33,21 +34,21 @@ const calificacionesController = {
         }
     },
 
-    async getTopConductores(req, res) {
+    async getTopRepartidores(req, res) {
         try {
-            console.log("[CONTROLLER] getTopConductores called");
-            const top = await calificacionesService.getTopConductores(5);
-            console.log("[CONTROLLER] getTopConductores result:", JSON.stringify(top));
+            console.log("[CONTROLLER] getTopRepartidores called");
+            const top = await calificacionesService.getTopRepartidores(5);
+            console.log("[CONTROLLER] getTopRepartidores result:", JSON.stringify(top));
             res.json(top);
         } catch (error) {
-            console.error("[CONTROLLER] Error getTopConductores:", error);
+            console.error("[CONTROLLER] Error getTopRepartidores:", error);
             res.status(500).json({ error: error.message });
         }
     },
 
-    async getTopViajeros(req, res) {
+    async getTopClientes(req, res) {
         try {
-            const top = await calificacionesService.getTopViajeros(5);
+            const top = await calificacionesService.getTopClientes(5);
             res.json(top);
         } catch (error) {
             res.status(500).json({ error: error.message });

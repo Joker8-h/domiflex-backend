@@ -61,18 +61,13 @@ const paradasService = {
 
     // Eliminar parada
     async deleteParada(id) {
-        // Verificar si la parada está siendo usada en reservas
-        const reservasCount = await prisma.usuarioViaje.count({
-            where: {
-                OR: [
-                    { idParadaSubida: parseInt(id) },
-                    { idParadaBajada: parseInt(id) }
-                ]
-            }
+        // Verificar si la parada está siendo usada en pedidos
+        const pedidosCount = await prisma.pedidoParadas.count({
+            where: { idParada: parseInt(id) }
         });
 
-        if (reservasCount > 0) {
-            throw new Error(`No se puede eliminar la parada. Hay ${reservasCount} reserva(s) asociada(s).`);
+        if (pedidosCount > 0) {
+            throw new Error(`No se puede eliminar la parada. Hay ${pedidosCount} pedido(s) asociado(s).`);
         }
 
         return await prisma.paradas.delete({

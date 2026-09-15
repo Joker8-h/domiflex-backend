@@ -99,12 +99,12 @@ const EmailService = {
 
     /**
      * Notifica al administrador sobre un nuevo reporte de pago
-     * @param {string} nombreConductor - Nombre del conductor
+     * @param {string} nombreRepartidor - Nombre del repartidor
      * @param {number} monto - Monto de la comisión esperada
      * @param {string} fotoComprobante - URL de la imagen del comprobante
-     * @param {number|string} cantidadEnviada - Cantidad reportada por el conductor
+     * @param {number|string} cantidadEnviada - Cantidad reportada por el repartidor
      */
-    async enviarNotificacionReportePago(nombreConductor, monto, fotoComprobante, cantidadEnviada) {
+    async enviarNotificacionReportePago(nombreRepartidor, monto, fotoComprobante, cantidadEnviada) {
         try {
             // Enviar al email del admin configurado
             const emailAdmin = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'admin@moviflex.com';
@@ -117,7 +117,7 @@ const EmailService = {
                 to: [{
                     email: emailAdmin
                 }],
-                subject: `Nuevo Reporte de Pago - ${nombreConductor}`,
+                subject: `Nuevo Reporte de Pago - ${nombreRepartidor}`,
                 htmlContent: `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
                         <div style="text-align: center; margin-bottom: 20px;">
@@ -126,7 +126,7 @@ const EmailService = {
                         <h2 style="color: #4acfbd; text-align: center;">Nuevo Reporte de Pago</h2>
                         <p>Se ha recibido un nuevo comprobante de pago en la plataforma <strong>MoviFlex</strong>.</p>
                         <div style="background-color: #f8fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                            <p><strong>Conductor:</strong> ${nombreConductor}</p>
+                            <p><strong>Repartidor:</strong> ${nombreRepartidor}</p>
                             <p><strong>Monto Comisión (Esperado):</strong> $${Number(monto).toLocaleString()} COP</p>
                             <p><strong>Cantidad Enviada (Reportada):</strong> ${isNaN(Number(cantidadEnviada)) ? cantidadEnviada : '$' + Number(cantidadEnviada).toLocaleString() + ' COP'}</p>
                             <p><strong>Estado:</strong> <span style="color: #f39c12; font-weight: bold;">Pendiente de revisión</span></p>
@@ -194,9 +194,9 @@ const EmailService = {
     },
 
     /**
-     * Envía recordatorio de pago al conductor 5 días antes de fin de mes
-     * @param {string} emailDestino - Correo del conductor
-     * @param {string} nombre - Nombre del conductor
+     * Envía recordatorio de pago al repartidor 5 días antes de fin de mes
+     * @param {string} emailDestino - Correo del repartidor
+     * @param {string} nombre - Nombre del repartidor
      * @param {number} montoComision - Monto pendiente
      * @param {number} diasRestantes - Días restantes para el fin de mes
      */
@@ -223,9 +223,9 @@ const EmailService = {
                             <p style="margin: 5px 0;"><strong>Comisión pendiente:</strong> $${Number(montoComision).toLocaleString()} COP</p>
                             <p style="margin: 5px 0;"><strong>Días restantes:</strong> <span style="color: #e74c3c; font-weight: bold;">${diasRestantes} días</span></p>
                         </div>
-                        <p>⚠️ <strong>Importante:</strong> Si no envías el comprobante de pago antes de que termine el mes, tu cuenta será <strong>suspendida automáticamente</strong> y no podrás seguir ofreciendo viajes.</p>
+                        <p>⚠️ <strong>Importante:</strong> Si no envías el comprobante de pago antes de que termine el mes, tu cuenta será <strong>suspendida automáticamente</strong> y no podrás seguir ofreciendo pedidos.</p>
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="${process.env.FRONTEND_URL || 'https://moviflexconreact-production.up.railway.app'}/driver-home" style="background-color: #4acfbd; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Enviar Comprobante Ahora</a>
+                            <a href="${process.env.FRONTEND_URL || 'https://moviflexconreact-production.up.railway.app'}/repartidor-home" style="background-color: #4acfbd; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Enviar Comprobante Ahora</a>
                         </div>
                         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
                         <p style="font-size: 12px; color: #8899a6; text-align: center;">MoviFlex Team</p>

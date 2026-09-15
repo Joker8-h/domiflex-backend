@@ -4,7 +4,7 @@ const EmailService = require('../SERVICES/EmailService');
 class ReportesPagoController {
     /**
      * GET /api/reportes-pago/comision
-     * Conductor obtiene su comisión acumulada del mes
+     * Repartidor obtiene su comisión acumulada del mes
      */
     async getComisionAcumulada(req, res) {
         try {
@@ -19,19 +19,19 @@ class ReportesPagoController {
 
     /**
      * POST /api/reportes-pago
-     * Conductor envía comprobante de pago
+     * Repartidor envía comprobante de pago
      */
     async crearReporte(req, res) {
         try {
             const { id, rol } = req.user;
 
-            if (!rol.includes('CONDUCTOR')) {
-                return res.status(403).json({ message: 'Solo los conductores pueden enviar reportes de pago' });
+            if (!rol.includes('REPARTIDOR')) {
+                return res.status(403).json({ message: 'Solo los repartidores pueden enviar reportes de pago' });
             }
 
             const reporte = await reportesPagoService.crearReporte(id, req.body);
 
-            // Capturar la cantidad enviada por el conductor (si está presente)
+            // Capturar la cantidad enviada por el repartidor (si está presente)
             const cantidadEnviada = req.body.cantidad || 'No especificada';
 
             // Enviar email al admin
@@ -55,7 +55,7 @@ class ReportesPagoController {
 
     /**
      * GET /api/reportes-pago
-     * Listar reportes (Admin: todos, Conductor: propios)
+     * Listar reportes (Admin: todos, Repartidor: propios)
      */
     async listarReportes(req, res) {
         try {
@@ -135,7 +135,7 @@ class ReportesPagoController {
 
     /**
      * POST /api/reportes-pago/enviar-recordatorios
-     * Admin envía recordatorios a conductores que no han pagado
+     * Admin envía recordatorios a repartidores que no han pagado
      */
     async enviarRecordatorios(req, res) {
         try {
@@ -147,7 +147,7 @@ class ReportesPagoController {
 
             const resultado = await reportesPagoService.enviarRecordatoriosPago();
             res.json({
-                message: `Recordatorios enviados a ${resultado.notificados} conductores. Faltan ${resultado.diasRestantes} días para fin de mes.`,
+                message: `Recordatorios enviados a ${resultado.notificados} repartidores. Faltan ${resultado.diasRestantes} días para fin de mes.`,
                 ...resultado
             });
         } catch (error) {

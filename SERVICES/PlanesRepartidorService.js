@@ -1,10 +1,10 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-const planesConductorService = {
+const planesRepartidorService = {
     // Obtener todos los planes
     async getAllPlanes() {
-        return await prisma.planesConductor.findMany({
+        return await prisma.planesRepartidor.findMany({
             include: {
                 _count: {
                     select: { suscripciones: true }
@@ -15,14 +15,14 @@ const planesConductorService = {
 
     // Obtener solo planes activos
     async getPlanesActivos() {
-        return await prisma.planesConductor.findMany({
+        return await prisma.planesRepartidor.findMany({
             where: { activo: true }
         });
     },
 
     // Obtener plan por ID
     async getPlanById(id) {
-        return await prisma.planesConductor.findUnique({
+        return await prisma.planesRepartidor.findUnique({
             where: { idPlan: parseInt(id) },
             include: {
                 suscripciones: {
@@ -45,13 +45,13 @@ const planesConductorService = {
 
     // Crear nuevo plan
     async createPlan(data) {
-        return await prisma.planesConductor.create({
+        return await prisma.planesRepartidor.create({
             data: {
                 nombre: data.nombre,
                 descripcion: data.descripcion,
                 tipo: data.tipo,
                 precio: data.precio,
-                maxViajes: data.maxViajes || null,
+                maxPedidos: data.maxPedidos || null,
                 porcentajeComision: data.porcentajeComision || null,
                 activo: data.activo !== undefined ? data.activo : true
             }
@@ -60,14 +60,14 @@ const planesConductorService = {
 
     // Actualizar plan
     async updatePlan(id, data) {
-        return await prisma.planesConductor.update({
+        return await prisma.planesRepartidor.update({
             where: { idPlan: parseInt(id) },
             data: {
                 nombre: data.nombre,
                 descripcion: data.descripcion,
                 tipo: data.tipo,
                 precio: data.precio,
-                maxViajes: data.maxViajes,
+                maxPedidos: data.maxPedidos,
                 porcentajeComision: data.porcentajeComision,
                 activo: data.activo
             }
@@ -77,7 +77,7 @@ const planesConductorService = {
     // Eliminar plan (soft delete - desactivar)
     async deletePlan(id) {
         // Verificar si hay suscripciones activas
-        const suscripcionesActivas = await prisma.suscripcionesConductor.count({
+        const suscripcionesActivas = await prisma.suscripcionesRepartidor.count({
             where: {
                 idPlan: parseInt(id),
                 estado: 'ACTIVA'
@@ -89,7 +89,7 @@ const planesConductorService = {
         }
 
         // Soft delete - desactivar el plan
-        return await prisma.planesConductor.update({
+        return await prisma.planesRepartidor.update({
             where: { idPlan: parseInt(id) },
             data: { activo: false }
         });
@@ -98,7 +98,7 @@ const planesConductorService = {
     // Eliminar plan definitivamente (hard delete)
     async hardDeletePlan(id) {
         // Verificar si hay suscripciones
-        const suscripciones = await prisma.suscripcionesConductor.count({
+        const suscripciones = await prisma.suscripcionesRepartidor.count({
             where: { idPlan: parseInt(id) }
         });
 
@@ -106,10 +106,10 @@ const planesConductorService = {
             throw new Error(`No se puede eliminar el plan. Hay ${suscripciones} suscripción(es) asociada(s).`);
         }
 
-        return await prisma.planesConductor.delete({
+        return await prisma.planesRepartidor.delete({
             where: { idPlan: parseInt(id) }
         });
     }
 };
 
-module.exports = planesConductorService;
+module.exports = planesRepartidorService;

@@ -1,3 +1,9 @@
+// DomiFlex: suscripciones de Repartidor (PlanesRepartidor/SuscripcionesRepartidor).
+// NOTA: SERVICES/SuscripcionesService.js aún no estaba migrado por el otro agente
+// al momento de este cambio (usaba el modelo antiguo de planes/suscripciones y
+// maxPedidos con otro nombre). Se mantienen los nombres de métodos exportados actuales
+// (createPlan/getPlanes/suscribirse/getMiSuscripcion/getById); el otro agente debe
+// exponerlos contra el modelo nuevo con maxPedidos.
 const suscripcionesService = require("../SERVICES/SuscripcionesService");
 
 const suscripcionesController = {

@@ -6,7 +6,7 @@ const cloudinaryService = require('./CloudinaryService');
 
 const reportesPagoService = {
     /**
-     * Obtener la comisión acumulada para un conductor
+     * Obtener la comisión acumulada para un repartidor
      * Calcula desde el último pago aprobado o desde la creación de la cuenta
      */
     async obtenerComisionAcumulada(idUsuarioRaw) {
@@ -33,31 +33,27 @@ const reportesPagoService = {
         // La fecha de inicio es la fecha de envío del último pago aprobado, o el inicio de los tiempos si es el primer pago
         const fechaInicio = ultimoReporteAprobado ? ultimoReporteAprobado.fechaEnvio : new Date(0);
 
-        // 3. Buscar todos los viajes completados desde la fecha de inicio
-        const reservasCompletadas = await prisma.usuarioViaje.findMany({
+        // 3. Buscar todos los pedidos entregados desde la fecha de inicio
+        const pedidosCompletados = await prisma.pedidos.findMany({
             where: {
-                estado: 'COMPLETADO',
-                viaje: {
-                    fechaHoraSalida: { gte: fechaInicio },
-                    vehiculo: {
-                        idUsuario: idUsuario
-                    }
-                }
+                estado: 'ENTREGADO',
+                creadoEn: { gte: fechaInicio },
+                idRepartidor: idUsuario
             },
             select: {
-                precioFinal: true,
+                total: true,
                 comisionPlataforma: true
             }
         });
 
-        const totalComision = reservasCompletadas.reduce((acc, r) => {
+        const totalComision = pedidosCompletados.reduce((acc, r) => {
             if (r.comisionPlataforma) return acc + Number(r.comisionPlataforma);
-            return acc + (Number(r.precioFinal || 0) * 0.10);
+            return acc + (Number(r.total || 0) * 0.10);
         }, 0);
 
-        const totalIngresos = reservasCompletadas.reduce((acc, r) => acc + Number(r.precioFinal || 0), 0);
+        const totalIngresos = pedidosCompletados.reduce((acc, r) => acc + Number(r.total || 0), 0);
 
-        console.log(`[ReportesPago] Usuario ${idUsuario}: ${reservasCompletadas.length} viajes encontrados desde ${fechaInicio.toISOString()}. Total Comision: ${totalComision}`);
+        console.log(`[ReportesPago] Usuario ${idUsuario}: ${pedidosCompletados.length} pedidos encontrados desde ${fechaInicio.toISOString()}. Total Comision: ${totalComision}`);
 
         // 4. Calcular próximo día de cobro (Billing Day)
         // Se basa en el día del mes en que se registró
@@ -84,7 +80,7 @@ const reportesPagoService = {
             fechaInicioCalculo: fechaInicio,
             totalIngresos: Number(totalIngresos.toFixed(2)),
             totalComision: Number(totalComision.toFixed(2)),
-            viajesCompletados: reservasCompletadas.length,
+            pedidosEntregados: pedidosCompletados.length,
             proximoCobro,
             diasRestantes,
             tieneReportePendiente: !!reportePendiente,
@@ -93,7 +89,7 @@ const reportesPagoService = {
     },
 
     /**
-     * Conductor envía reporte de pago con foto del comprobante
+     * Repartidor envía reporte de pago con foto del comprobante
      */
     async crearReporte(idUsuario, data) {
         const { fotoComprobante } = data;
@@ -173,12 +169,12 @@ const reportesPagoService = {
     },
 
     /**
-     * Listar reportes (Admin: todos, Conductor: propios)
+     * Listar reportes (Admin: todos, Repartidor: propios)
      */
     async obtenerReportes(idUsuario, rol, filtros = {}) {
         const where = {};
 
-        // Si es conductor, solo ve los suyos
+        // Si es repartidor, solo ve los suyos
         if (!rol.includes('ADMIN')) {
             where.idUsuario = idUsuario;
         }
@@ -223,7 +219,7 @@ const reportesPagoService = {
             }
         });
 
-        // Notificar al conductor
+        // Notificar al repartidor
         try {
             await notificacionesService.crearNotificacion({
                 idUsuario: reporte.idUsuario,
@@ -232,7 +228,7 @@ const reportesPagoService = {
                 tipo: 'PAGO'
             });
         } catch (e) {
-            console.error('[ReportesPago] Error notificación conductor:', e.message);
+            console.error('[ReportesPago] Error notificación repartidor:', e.message);
         }
 
         return actualizado;
@@ -259,7 +255,7 @@ const reportesPagoService = {
             }
         });
 
-        // Notificar al conductor
+        // Notificar al repartidor
         try {
             await notificacionesService.crearNotificacion({
                 idUsuario: reporte.idUsuario,
@@ -268,22 +264,22 @@ const reportesPagoService = {
                 tipo: 'PAGO'
             });
         } catch (e) {
-            console.error('[ReportesPago] Error notificación conductor:', e.message);
+            console.error('[ReportesPago] Error notificación repartidor:', e.message);
         }
 
         return actualizado;
     },
 
     /**
-     * Verificar pagos vencidos - Suspende conductores que pasaron su fecha de cobro sin pagar
+     * Verificar pagos vencidos - Suspende repartidores que pasaron su fecha de cobro sin pagar
      */
     async verificarPagosMensuales() {
         const ahora = new Date();
         
-        // Obtener todos los conductores activos
-        const conductores = await prisma.usuarios.findMany({
+        // Obtener todos los repartidores activos
+        const repartidores = await prisma.usuarios.findMany({
             where: {
-                rol: { nombre: 'CONDUCTOR' },
+                rol: { nombre: 'REPARTIDOR' },
                 estado: 'ACTIVO'
             },
             select: { idUsuarios: true, nombre: true, email: true, creadoEn: true }
@@ -291,9 +287,9 @@ const reportesPagoService = {
 
         const suspendidos = [];
 
-        for (const conductor of conductores) {
+        for (const repartidor of repartidores) {
             // Calcular su fecha de vencimiento actual
-            const infoCobro = await this.obtenerComisionAcumulada(conductor.idUsuarios);
+            const infoCobro = await this.obtenerComisionAcumulada(repartidor.idUsuarios);
             
             // La fecha de vencimiento es proximoCobro - 1 mes (o el día de registro si es el primer mes)
             // Pero simplifiquemos: si totalComision > 0 Y el día de hoy es mayor/igual al día de registro + un margen?
@@ -301,14 +297,14 @@ const reportesPagoService = {
             // Y no tiene un reporte pendiente: SUSPENDER.
             
             // Lógica exacta: si hoy PASÓ su día de registro en este mes, y sigue teniendo deuda del ciclo anterior.
-            const diaVencimiento = conductor.creadoEn.getDate();
+            const diaVencimiento = repartidor.creadoEn.getDate();
             const hoyDia = ahora.getDate();
             
             if (hoyDia > diaVencimiento && infoCobro.totalComision > 100 && !infoCobro.tieneReportePendiente) {
                 // Verificar si ya envió un reporte en los últimos días que esté aprobado
                 const ultimoAprobadoReciente = await prisma.reportesPago.findFirst({
                     where: {
-                        idUsuario: conductor.idUsuarios,
+                        idUsuario: repartidor.idUsuarios,
                         estado: 'APROBADO',
                         fechaRevision: { gte: new Date(ahora.getFullYear(), ahora.getMonth(), diaVencimiento) }
                     }
@@ -316,21 +312,21 @@ const reportesPagoService = {
 
                 if (!ultimoAprobadoReciente) {
                     await prisma.usuarios.update({
-                        where: { idUsuarios: conductor.idUsuarios },
+                        where: { idUsuarios: repartidor.idUsuarios },
                         data: { estado: 'SUSPENDIDO' }
                     });
 
-                    suspendidos.push(conductor);
+                    suspendidos.push(repartidor);
 
                     // Notificaciones
                     try {
                         await notificacionesService.crearNotificacion({
-                            idUsuario: conductor.idUsuarios,
+                            idUsuario: repartidor.idUsuarios,
                             titulo: 'Cuenta Suspendida',
                             mensaje: 'Tu cuenta ha sido suspendida por falta de pago de comisiones vencidas. Por favor envía tu comprobante.',
                             tipo: 'SISTEMA'
                         });
-                        await EmailService.enviarNotificacionDesactivacion(conductor.email, conductor.nombre);
+                        await EmailService.enviarNotificacionDesactivacion(repartidor.email, repartidor.nombre);
                     } catch (e) {
                         console.error('[ReportesPago] Error notificaciones suspensión:', e.message);
                     }
@@ -339,21 +335,21 @@ const reportesPagoService = {
         }
 
         return {
-            verificados: conductores.length,
+            verificados: repartidores.length,
             suspendidos: suspendidos.length,
-            conductoresSuspendidos: suspendidos
+            repartidoresSuspendidos: suspendidos
         };
     },
 
     /**
-     * Enviar recordatorios de pago basados en la fecha individual de cada conductor
+     * Enviar recordatorios de pago basados en la fecha individual de cada repartidor
      */
     async enviarRecordatoriosPago() {
         const ahora = new Date();
         
-        const conductores = await prisma.usuarios.findMany({
+        const repartidores = await prisma.usuarios.findMany({
             where: {
-                rol: { nombre: 'CONDUCTOR' },
+                rol: { nombre: 'REPARTIDOR' },
                 estado: 'ACTIVO'
             },
             select: { idUsuarios: true, nombre: true, email: true, creadoEn: true }
@@ -361,8 +357,8 @@ const reportesPagoService = {
 
         let notificados = 0;
 
-        for (const conductor of conductores) {
-            const info = await this.obtenerComisionAcumulada(conductor.idUsuarios);
+        for (const repartidor of repartidores) {
+            const info = await this.obtenerComisionAcumulada(repartidor.idUsuarios);
 
             // Solo notificar si tiene deuda y faltan exactamente 5 días (o menos si es urgente)
             if (info.totalComision > 0 && info.diasRestantes <= 5 && !info.tieneReportePendiente) {
@@ -371,15 +367,15 @@ const reportesPagoService = {
                 
                 try {
                     await notificacionesService.crearNotificacion({
-                        idUsuario: conductor.idUsuarios,
+                        idUsuario: repartidor.idUsuarios,
                         titulo: '⚠️ Recordatorio de Pago',
                         mensaje: `Te quedan ${info.diasRestantes} días para el cierre de tu ciclo de facturación. Comisión pendiente: $${info.totalComision.toLocaleString()} COP.`,
                         tipo: 'PAGO'
                     });
 
                     await EmailService.enviarRecordatorioPago(
-                        conductor.email,
-                        conductor.nombre,
+                        repartidor.email,
+                        repartidor.nombre,
                         info.totalComision,
                         info.diasRestantes
                     );
@@ -391,7 +387,7 @@ const reportesPagoService = {
         }
 
         return {
-            totalConductores: conductores.length,
+            totalRepartidores: repartidores.length,
             notificados
         };
     }

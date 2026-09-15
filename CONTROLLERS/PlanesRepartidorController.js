@@ -1,10 +1,10 @@
-const planesConductorService = require("../SERVICES/PlanesConductorService");
+const planesRepartidorService = require("../SERVICES/PlanesRepartidorService");
 
-const planesConductorController = {
+const planesRepartidorController = {
     // Listar todos los planes
     async getAll(req, res) {
         try {
-            const planes = await planesConductorService.getAllPlanes();
+            const planes = await planesRepartidorService.getAllPlanes();
             res.json(planes);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -14,7 +14,7 @@ const planesConductorController = {
     // Listar solo planes activos
     async getActivos(req, res) {
         try {
-            const planes = await planesConductorService.getPlanesActivos();
+            const planes = await planesRepartidorService.getPlanesActivos();
             res.json(planes);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -25,7 +25,7 @@ const planesConductorController = {
     async getById(req, res) {
         try {
             const { id } = req.params;
-            const plan = await planesConductorService.getPlanById(id);
+            const plan = await planesRepartidorService.getPlanById(id);
 
             if (!plan) {
                 return res.status(404).json({ error: "Plan no encontrado" });
@@ -40,7 +40,7 @@ const planesConductorController = {
     // Crear nuevo plan
     async create(req, res) {
         try {
-            const plan = await planesConductorService.createPlan(req.body);
+            const plan = await planesRepartidorService.createPlan(req.body);
             res.status(201).json({
                 message: "Plan creado exitosamente",
                 plan
@@ -54,7 +54,7 @@ const planesConductorController = {
     async update(req, res) {
         try {
             const { id } = req.params;
-            const plan = await planesConductorService.updatePlan(id, req.body);
+            const plan = await planesRepartidorService.updatePlan(id, req.body);
             res.json({
                 message: "Plan actualizado exitosamente",
                 plan
@@ -68,7 +68,7 @@ const planesConductorController = {
     async delete(req, res) {
         try {
             const { id } = req.params;
-            const plan = await planesConductorService.deletePlan(id);
+            const plan = await planesRepartidorService.deletePlan(id);
             res.json({
                 message: "Plan desactivado exitosamente",
                 plan
@@ -79,4 +79,4 @@ const planesConductorController = {
     }
 };
 
-module.exports = planesConductorController;
+module.exports = planesRepartidorController;

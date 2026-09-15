@@ -27,15 +27,15 @@ const authorize = require('../MIDDLEWARE/role.middleware.js');
 
 
 router.get('/', verfificacion, authorize(['ADMIN']), authController.getUsuarios);
-router.get('/conductores', verfificacion, authorize(['ADMIN']), authController.getConductores);
-router.get('/pasajeros', verfificacion, authorize(['ADMIN']), authController.getPasajeros);
+router.get('/repartidores', verfificacion, authorize(['ADMIN']), authController.getRepartidores);
+router.get('/clientes', verfificacion, authorize(['ADMIN']), authController.getClientes);
 
-router.put('/:id', verfificacion, authorize(['ADMIN', 'PASAJERO', 'CONDUCTOR']), authController.updateUsuario);
+router.put('/:id', verfificacion, authorize(['ADMIN', 'CLIENTE', 'COMERCIO', 'REPARTIDOR']), authController.updateUsuario);
 router.patch('/:id/estado', verfificacion, authorize(['ADMIN']), authController.cambiarEstadoUsuario);
 router.delete('/:id', verfificacion, authorize(['ADMIN']), authController.eliminarUsuario);
 router.get('/search', verfificacion, authorize(['ADMIN']), authController.buscarUsuarios);
 router.get('/online-users', verfificacion, authorize(['ADMIN']), authController.getOnlineUsers);
-router.get('/:id', verfificacion, authorize(['ADMIN', 'PASAJERO', 'CONDUCTOR']), authController.getUsuarioById);
+router.get('/:id', verfificacion, authorize(['ADMIN', 'CLIENTE', 'COMERCIO', 'REPARTIDOR']), authController.getUsuarioById);
 
 
 

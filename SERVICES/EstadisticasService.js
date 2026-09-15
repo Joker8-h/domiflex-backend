@@ -3,10 +3,10 @@ const prisma = new PrismaClient();
 
 class EstadisticasService {
     /**
-     * Obtener ganancias de un conductor por periodo (diario, mensual, anual)
+     * Obtener ganancias de un repartidor por periodo (diario, mensual, anual)
      * Si idUsuario es 'GLOBAL' y el rol permite, obtiene de toda la plataforma
      */
-    async obtenerGananciasConductor(idUsuario, periodo = 'mensual', isGlobal = false) {
+    async obtenerGananciasRepartidor(idUsuario, periodo = 'mensual', isGlobal = false) {
         const ahora = new Date();
         let fechaInicio;
 
@@ -18,9 +18,9 @@ class EstadisticasService {
             fechaInicio = new Date(ahora.getFullYear(), 0, 1);
         }
 
-        // Buscamos Pagos reales que los pasajeros hicieron para viajes de este conductor
+        // Buscamos Pagos reales que los clientes hicieron para pedidos de este repartidor
         let whereClause = {
-            estado: { in: ['PAGADO', 'CONFIRMADO_CONDUCTOR', 'CONFIRMADO_PASAJERO', 'COMPLETADO'] }
+            estado: { in: ['PAGADO', 'CONFIRMADO_REPARTIDOR', 'CONFIRMADO_CLIENTE', 'COMPLETADO'] }
         };
 
         if (fechaInicio) {
@@ -28,10 +28,8 @@ class EstadisticasService {
         }
 
         if (!isGlobal && idUsuario) {
-            whereClause.viaje = {
-                vehiculo: {
-                    idUsuario: idUsuario
-                }
+            whereClause.pedido = {
+                idRepartidor: idUsuario
             };
         }
 
@@ -91,9 +89,9 @@ class EstadisticasService {
     }
 
     /**
-     * Obtener gastos de un pasajero o ingresos globales por periodo
+     * Obtener gastos de un cliente o ingresos globales por periodo
      */
-    async obtenerGastosPasajero(idUsuario, periodo = 'mensual', isGlobal = false) {
+    async obtenerGastosCliente(idUsuario, periodo = 'mensual', isGlobal = false) {
         const ahora = new Date();
         let fechaInicio;
 
@@ -134,7 +132,7 @@ class EstadisticasService {
     }
 
     /**
-     * Obtener ingresos globales de la plataforma a partir de las comisiones aprobadas de los conductores
+     * Obtener ingresos globales de la plataforma a partir de las comisiones aprobadas de los repartidores
      */
     async obtenerIngresosPlataforma(periodo = 'mensual') {
         const ahora = new Date();
@@ -191,41 +189,41 @@ class EstadisticasService {
     }
 
     /**
-     * Obtener resumen de viajes realizados
+     * Obtener resumen de pedidos realizados
      */
-    async obtenerResumenViajes(idUsuario, rol, isGlobal = false) {
+    async obtenerResumenPedidos(idUsuario, rol, isGlobal = false) {
         if (isGlobal || rol.includes('ADMIN')) {
-            const total = await prisma.viajes.count({
-                where: { estado: 'FINALIZADO' }
+            const total = await prisma.pedidos.count({
+                where: { estado: 'ENTREGADO' }
             });
             return { total, rol: 'ADMIN' };
         }
 
-        if (rol === 'CONDUCTOR' || rol === 'CONDUCTOR_ADMIN') {
-            const total = await prisma.viajes.count({
+        if (rol === 'REPARTIDOR' || rol === 'REPARTIDOR_ADMIN') {
+            const total = await prisma.pedidos.count({
                 where: {
                     vehiculo: {
                         idUsuario: idUsuario
                     },
-                    estado: 'FINALIZADO'
+                    estado: 'ENTREGADO'
                 }
             });
-            return { total, rol: 'CONDUCTOR' };
+            return { total, rol: 'REPARTIDOR' };
         } else {
-            const total = await prisma.usuarioViaje.count({
+            const total = await prisma.pedidos.count({
                 where: {
-                    idUsuarios: idUsuario,
-                    estado: 'COMPLETADO'
+                    idCliente: idUsuario,
+                    estado: 'ENTREGADO'
                 }
             });
-            return { total, rol: 'PASAJERO' };
+            return { total, rol: 'CLIENTE' };
         }
     }
 
     /**
-     * Obtener historial de viajes por periodo para gráficas de frecuencia
+     * Obtener historial de pedidos por periodo para gráficas de frecuencia
      */
-    async obtenerHistorialViajes(idUsuario, rol, periodo = 'mensual', isGlobal = false) {
+    async obtenerHistorialPedidos(idUsuario, rol, periodo = 'mensual', isGlobal = false) {
         const ahora = new Date();
         let fechaInicio;
 
@@ -237,29 +235,29 @@ class EstadisticasService {
             fechaInicio = new Date(ahora.getFullYear(), 0, 1);
         }
 
-        let viajes;
+        let pedidos;
         if (isGlobal || rol.includes('ADMIN')) {
-            viajes = await prisma.viajes.findMany({
+            pedidos = await prisma.pedidos.findMany({
                 where: {
-                    estado: 'FINALIZADO',
+                    estado: 'ENTREGADO',
                     creadoEn: { gte: fechaInicio }
                 },
                 select: { creadoEn: true }
             });
-        } else if (rol === 'CONDUCTOR' || rol === 'CONDUCTOR_ADMIN') {
-            viajes = await prisma.viajes.findMany({
+        } else if (rol === 'REPARTIDOR' || rol === 'REPARTIDOR_ADMIN') {
+            pedidos = await prisma.pedidos.findMany({
                 where: {
                     vehiculo: { idUsuario: idUsuario },
-                    estado: 'FINALIZADO',
+                    estado: 'ENTREGADO',
                     creadoEn: { gte: fechaInicio }
                 },
                 select: { creadoEn: true }
             });
         } else {
-            viajes = await prisma.usuarioViaje.findMany({
+            pedidos = await prisma.pedidos.findMany({
                 where: {
-                    idUsuarios: idUsuario,
-                    estado: 'COMPLETADO',
+                    idCliente: idUsuario,
+                    estado: 'ENTREGADO',
                     creadoEn: { gte: fechaInicio }
                 },
                 select: { creadoEn: true }
@@ -267,7 +265,7 @@ class EstadisticasService {
         }
 
         const grupos = {};
-        viajes.forEach(v => {
+        pedidos.forEach(v => {
             let key;
             const fecha = new Date(v.creadoEn);
             if (periodo === 'diario') key = `${fecha.getHours()}:00`;
@@ -282,7 +280,7 @@ class EstadisticasService {
         const historial = Object.entries(grupos).map(([name, value]) => ({ name, value }));
 
         return {
-            total: viajes.length,
+            total: pedidos.length,
             periodo,
             historial
         };
@@ -292,12 +290,12 @@ class EstadisticasService {
      * Obtener mejores rutas (más frecuentes)
      */
     async obtenerMejoresRutas(idUsuario, limit = 5, isGlobal = false) {
-        let whereClause = { estado: 'FINALIZADO' };
+        let whereClause = { estado: 'ENTREGADO' };
         if (!isGlobal) {
-            whereClause.vehiculo = { idUsuario: idUsuario };
+            whereClause.idRepartidor = idUsuario;
         }
 
-        const viajes = await prisma.viajes.findMany({
+        const pedidos = await prisma.pedidos.findMany({
             where: whereClause,
             include: {
                 ruta: true
@@ -305,7 +303,7 @@ class EstadisticasService {
         });
 
         const conteoRutas = {};
-        viajes.forEach(v => {
+        pedidos.forEach(v => {
             const nombreRuta = v.ruta?.nombre || `Ruta ${v.idRuta}`;
             conteoRutas[nombreRuta] = (conteoRutas[nombreRuta] || 0) + 1;
         });

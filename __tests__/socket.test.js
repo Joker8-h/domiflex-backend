@@ -83,7 +83,7 @@ describe("Pruebas Unidad - Tiempo Real y Sockets", () => {
         socketService.notifyAdmins("user_connected", {
             id: 888,
             nombre: "Usuario Fantasma",
-            rol: "PASAJERO"
+            rol: "CLIENTE"
         });
     });
 });

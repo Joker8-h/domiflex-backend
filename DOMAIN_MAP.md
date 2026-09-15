@@ -1,8 +1,16 @@
 # DOMAIN_MAP — Moviflexx (viajes compartidos) → DomiFlex (domicilios)
 
 Base duplicada intacta de `Joker8-h/BACKENDMOVI`. Este archivo es el contrato
-de la adaptación. Fase 1 (no rompedora) ya aplicada: rename + seed + env.
-Fase 2 renombra modelos y adapta controladores/servicios/rutas.
+de la adaptación. Fase 1 (no rompedora) y Fase 2 (renombre total) APLICADAS.
+Verificado: `prisma validate` OK, generate OK, jest 36/37 (solo falla
+`rateLimit.test.js`, pre-existente en BACKENDMOVI sin diff, sensible a timing).
+
+## Decisiones de negocio confirmadas
+- El CLIENTE crea el pedido (POST /api/pedidos, roles CLIENTE/COMERCIO/ADMIN/REPARTIDOR).
+- Pago en EFECTIVO por ahora (TipoPago default EFECTIVO; pago PENDIENTE creado con el pedido).
+- Comisión por distancia en PricingService.estimarPrecioPedido: base 2000 + 800/km
+  (distancia vía OPTIMIZER_URL/route-options CHEAPEST, fallback Haversine);
+  comisión ≤5km 10%, ≤15km 12%, >15km 15%, redondeo a 100 (mín 500).
 
 ## Roles (`Roles` + `prisma/seed.js` ✅ adaptado)
 | Moviflexx   | DomiFlex    |

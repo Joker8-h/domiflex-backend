@@ -4,10 +4,10 @@ const prisma = new PrismaClient({
 
 const calificacionesService = {
     async create(data) {
-        // Validar que el usuario sea parte del viaje (pendiente)
+        // Validar que el usuario sea parte del pedido (pendiente)
         return await prisma.calificaciones.create({
             data: {
-                idViaje: parseInt(data.idViaje),
+                idPedido: parseInt(data.idPedido),
                 idCalificador: parseInt(data.idCalificador),
                 idCalificado: parseInt(data.idCalificado),
                 puntuacion: parseInt(data.puntuacion),
@@ -95,12 +95,12 @@ const calificacionesService = {
         }
     },
 
-    async getTopConductores(limit = 5) {
-        return this._getTopUsersByRole(['CONDUCTOR', 'DRIVER'], limit);
+    async getTopRepartidores(limit = 5) {
+        return this._getTopUsersByRole(['REPARTIDOR', 'REPARTIDOR'], limit);
     },
 
-    async getTopViajeros(limit = 5) {
-        return this._getTopUsersByRole(['VIAJERO', 'PASAJERO', 'PASSENGER'], limit);
+    async getTopClientes(limit = 5) {
+        return this._getTopUsersByRole(['CLIENTE', 'CUSTOMER'], limit);
     }
 };
 

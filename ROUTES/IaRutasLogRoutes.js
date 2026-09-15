@@ -15,7 +15,7 @@ router.get('/:id', iaRutasLogController.getById);
 router.use(verificarToken);
 
 // Ruta para crear logs (ADMIN o sistema automatizado)
-router.post('/', authorize(['ADMIN', 'CONDUCTOR']), iaRutasLogController.create);
+router.post('/', authorize(['ADMIN', 'REPARTIDOR']), iaRutasLogController.create);
 
 // Ruta de limpieza (solo ADMIN)
 router.delete('/limpiar', authorize(['ADMIN']), iaRutasLogController.limpiarAntiguos);

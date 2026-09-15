@@ -5,13 +5,13 @@ const prisma = new PrismaClient({
 const suscripcionesService = {
     // Planes (Admin)
     async createPlan(data) {
-        return await prisma.planesConductor.create({
+        return await prisma.planesRepartidor.create({
             data: {
                 nombre: data.nombre,
                 descripcion: data.descripcion,
                 tipo: data.tipo, // SEMANAL, MENSUAL
                 precio: data.precio,
-                maxViajes: data.maxViajes ? parseInt(data.maxViajes) : null,
+                maxPedidos: data.maxPedidos ? parseInt(data.maxPedidos) : null,
                 porcentajeComision: data.porcentajeComision,
                 activo: true
             }
@@ -19,16 +19,16 @@ const suscripcionesService = {
     },
 
     async getPlanes() {
-        return await prisma.planesConductor.findMany({
+        return await prisma.planesRepartidor.findMany({
             where: { activo: true }
         });
     },
 
-    // Suscripciones (Conductor)
+    // Suscripciones (Repartidor)
     async suscribirse(data) {
         // Calcular fechas
         const fechaInicio = new Date();
-        const plan = await prisma.planesConductor.findUnique({
+        const plan = await prisma.planesRepartidor.findUnique({
             where: { idPlan: parseInt(data.idPlan) }
         });
 
@@ -41,7 +41,7 @@ const suscripcionesService = {
             fechaFin.setMonth(fechaFin.getMonth() + 1);
         }
 
-        return await prisma.suscripcionesConductor.create({
+        return await prisma.suscripcionesRepartidor.create({
             data: {
                 idUsuario: parseInt(data.idUsuario),
                 idPlan: parseInt(data.idPlan),
@@ -54,14 +54,14 @@ const suscripcionesService = {
     },
 
     async getMiSuscripcion(idUsuario) {
-        return await prisma.suscripcionesConductor.findFirst({
+        return await prisma.suscripcionesRepartidor.findFirst({
             where: { idUsuario: idUsuario, estado: 'ACTIVA' },
             include: { plan: true }
         });
     },
 
     async getById(id) {
-        return await prisma.suscripcionesConductor.findUnique({
+        return await prisma.suscripcionesRepartidor.findUnique({
             where: { idSuscripcion: parseInt(id) },
             include: {
                 usuario: { select: { nombre: true, email: true } },

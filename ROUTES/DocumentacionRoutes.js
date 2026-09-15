@@ -4,9 +4,9 @@ const documentacionController = require('../CONTROLLERS/DocumentacionController'
 const verificarToken = require('../MIDDLEWARE/authmiddleware');
 const authorize = require('../MIDDLEWARE/role.middleware');
 
-// Rutas para Conductor
-router.post('/documentacion_subir', verificarToken, authorize(['CONDUCTOR']), documentacionController.upload);
-router.get('/documentacion_mis', verificarToken, authorize(['CONDUCTOR', 'ADMIN']), documentacionController.getMyDocs);
+// Rutas para Repartidor
+router.post('/documentacion_subir', verificarToken, authorize(['REPARTIDOR']), documentacionController.upload);
+router.get('/documentacion_mis', verificarToken, authorize(['REPARTIDOR', 'ADMIN']), documentacionController.getMyDocs);
 
 // Rutas para Admin (Validación)
 router.patch('/documentacion_validate/:id', verificarToken, authorize(['ADMIN']), documentacionController.validate);

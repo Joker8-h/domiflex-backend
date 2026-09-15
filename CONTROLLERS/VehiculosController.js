@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 const vehiculosController = {
     async create(req, res) {
         try {
-            const { marca, modelo, placa, capacidad, fotoPlaca, fotoAuto1, fotoAuto2, fotoAuto3 } = req.body;
+            const { marca, modelo, placa, capacidad, tipo, fotoPlaca, fotoAuto1, fotoAuto2, fotoAuto3 } = req.body;
 
             const idUsuario = req.user.id;
 
@@ -50,6 +50,7 @@ const vehiculosController = {
                 marca,
                 modelo,
                 placa,
+                tipo,
                 capacidad: parseInt(capacidad),
                 fotoPlaca: fotoPlacaUrl,
                 fotoAuto1: fotoAuto1Url,
@@ -139,7 +140,7 @@ const vehiculosController = {
             // 1. Subir a Cloudinary temporalmente o usar una carpeta específica
             console.log("[VEHICULOS] Subiendo foto de placa a Cloudinary...");
             const fotoUrl = await cloudinaryService.subirImagen(fotoPlaca, "temp_plates");
-            console.log("[VEHICULOS] Foto de placa subida exitosamente:", fotoUrl);
+            console.log("[VEHICULOS] Foto de placa cargada a Cloudinary exitosamente:", fotoUrl);
 
             // 2. Analizar con IA
             console.log("[VEHICULOS] Llamando a aiService.verificarPlaca...");
@@ -161,11 +162,11 @@ const vehiculosController = {
         }
     },
 
-    // Solicitud de cambio de vehículo (Conductor)
+    // Solicitud de cambio de vehículo (Repartidor)
     async solicitarCambio(req, res) {
         try {
             const { id } = req.params;
-            const { marca, modelo, capacidad, fotoPlaca, fotoAuto1, fotoAuto2, fotoAuto3 } = req.body;
+            const { marca, modelo, capacidad, tipo, placaNueva, fotoPlaca, fotoAuto1, fotoAuto2, fotoAuto3 } = req.body;
 
             let fp = null, fa1 = null, fa2 = null, fa3 = null;
             if (fotoPlaca) fp = await cloudinaryService.subirImagen(fotoPlaca, "vehicle_changes");
@@ -174,7 +175,7 @@ const vehiculosController = {
             if (fotoAuto3) fa3 = await cloudinaryService.subirImagen(fotoAuto3, "vehicle_changes");
 
             const solicitud = await vehiculosService.crearSolicitudCambio(id, {
-                marca, modelo, capacidad,
+                marca, modelo, capacidad, tipo, placaNueva,
                 fotoPlacaNuevaUrl: fp,
                 fotoAuto1NuevaUrl: fa1,
                 fotoAuto2NuevaUrl: fa2,
@@ -187,11 +188,11 @@ const vehiculosController = {
                 "new_vehicle_change_request",
                 {
                     idSolicitud: solicitud.idSolicitud,
-                    conductor: req.user.nombre,
+                    repartidor: req.user.nombre,
                     fecha: solicitud.fechaSolicitud
                 },
                 "Solicitud de Cambio de Vehículo",
-                `El conductor ${req.user.nombre} ha solicitado modificar los datos de su vehículo.`
+                `El repartidor ${req.user.nombre} ha solicitado modificar los datos de su vehículo.`
             );
 
             res.json({ mensaje: "Solicitud de cambio enviada para aprobación del administrador", solicitud });
@@ -218,7 +219,7 @@ const vehiculosController = {
             const { aprobado, observaciones } = req.body;
             const resultado = await vehiculosService.procesarSolicitudCambio(id, aprobado, observaciones);
 
-            // Notificar al conductor
+            // Notificar al repartidor
             const socketService = require("../SERVICES/SocketService");
             const solicitudCompleta = await prisma.solicitudCambioVehiculo.findUnique({
                 where: { idSolicitud: parseInt(id) },

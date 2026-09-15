@@ -16,7 +16,7 @@ function initCronJobs() {
             if (diasRestantes <= 5) {
                 console.log(`[CRON] Enviando recordatorios de pago (faltan ${diasRestantes} días)...`);
                 const resultado = await reportesPagoService.enviarRecordatoriosPago();
-                console.log(`[CRON] Recordatorios enviados a ${resultado.notificados} conductores`);
+                console.log(`[CRON] Recordatorios enviados a ${resultado.notificados} repartidores`);
             }
         } catch (error) {
             console.error('[CRON] Error en recordatorios de pago:', error.message);
@@ -24,7 +24,7 @@ function initCronJobs() {
     });
 
     // Verificación mensual: se ejecuta el día 1 de cada mes a las 9:00 AM
-    // Suspende conductores que no pagaron el mes anterior
+    // Suspende repartidores que no pagaron el mes anterior
     cron.schedule('0 9 1 * *', async () => {
         try {
             console.log('[CRON] Ejecutando verificación mensual de pagos...');

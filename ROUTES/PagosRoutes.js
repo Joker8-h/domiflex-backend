@@ -7,10 +7,10 @@ router.use(verificarToken);
 
 router.post('/', pagosController.create);
 router.get('/', pagosController.getMyPagos);
-router.get('/viaje/:idViaje', pagosController.getByViaje);
-router.get('/viaje/:idViaje/usuario/:idUsuario', pagosController.getByViajeAndUser);
-router.put('/confirmarPasajero/:id', pagosController.confirmarPasajero);
-router.put('/confirmarConductor/:id', pagosController.confirmarConductor);
+router.get('/pedido/:idPedido', pagosController.getByPedido);
+router.get('/pedido/:idPedido/usuario/:idUsuario', pagosController.getByPedidoAndUser);
+router.put('/confirmarCliente/:id', pagosController.confirmarCliente);
+router.put('/confirmarRepartidor/:id', pagosController.confirmarRepartidor);
 router.get('/:id', pagosController.getById);
 router.patch('/:id/confirmacion', pagosController.updateConfirmacion);
 

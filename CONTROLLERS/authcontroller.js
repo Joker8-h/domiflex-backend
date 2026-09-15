@@ -134,18 +134,18 @@ const authController = {
         }
     },
 
-    async getConductores(req, res) {
+    async getRepartidores(req, res) {
         try {
-            const drivers = await authService.obtenerConductores();
+            const drivers = await authService.obtenerRepartidores();
             res.json(drivers);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     },
 
-    async getPasajeros(req, res) {
+    async getClientes(req, res) {
         try {
-            const passengers = await authService.obtenerPasajeros();
+            const passengers = await authService.obtenerClientes();
             res.json(passengers);
         } catch (error) {
             res.status(500).json({ error: error.message });

@@ -1,3 +1,4 @@
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-domi';
 const request = require('supertest');
 const { app } = require('../index');
 const jwt = require('jsonwebtoken');
@@ -17,7 +18,7 @@ jest.mock('../SERVICES/CloudinaryService', () => ({
 }));
 
 const testToken = jwt.sign(
-    { id: 1, email: 'conductor@test.com', nombre: 'Test', idRol: 2, rol: 'CONDUCTOR' },
+    { id: 1, email: 'repartidor@test.com', nombre: 'Test', idRol: 2, rol: 'REPARTIDOR' },
     process.env.JWT_SECRET || 'secreto_super_seguro',
     { expiresIn: '1h' }
 );

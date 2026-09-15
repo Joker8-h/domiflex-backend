@@ -1,6 +1,6 @@
 /**
  * Middleware de autorización basado en roles
- * @param {Array<string>} allowedRoles - Array de roles permitidos (ej: ['ADMIN', 'CONDUCTOR'])
+ * @param {Array<string>} allowedRoles - Array de roles permitidos (ej: ['ADMIN', 'REPARTIDOR'])
  * @returns {Function} Middleware function
  */
 const authorize = (allowedRoles = []) => {

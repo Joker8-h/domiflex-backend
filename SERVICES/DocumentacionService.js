@@ -146,7 +146,7 @@ const documentacionService = {
         idUsuario: actualizada.idUsuario,
         titulo: `Documentación ${estado === 'APROBADO' ? 'Aprobada' : 'Rechazada'}`,
         mensaje: estado === 'APROBADO'
-          ? "¡Felicidades! Tu documentación ha sido aprobada. Ya puedes empezar a realizar viajes."
+          ? "¡Felicidades! Tu documentación ha sido aprobada. Ya puedes empezar a realizar pedidos."
           : `Tu documentación ha sido rechazada. Motivo: ${observaciones || 'No especificado'}. Por favor, vuelve a subirla correctamente.`,
         tipo: "SISTEMA"
       });

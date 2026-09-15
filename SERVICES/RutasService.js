@@ -107,13 +107,13 @@ const rutasService = {
             throw new Error(`La ruta con ID ${id} no existe.`);
         }
 
-        // Verificar si tiene viajes asociados
-        const viajesCount = await prisma.viajes.count({
+        // Verificar si tiene pedidos asociados
+        const pedidosCount = await prisma.pedidos.count({
             where: { idRuta }
         });
 
-        if (viajesCount > 0) {
-            throw new Error(`No se puede eliminar la ruta. Tiene ${viajesCount} viaje(s) asociado(s). Debe eliminar los viajes primero.`);
+        if (pedidosCount > 0) {
+            throw new Error(`No se puede eliminar la ruta. Tiene ${pedidosCount} pedido(s) asociado(s). Debe eliminar los pedidos primero.`);
         }
 
         // Verificar si tiene paradas asociadas
@@ -140,11 +140,11 @@ const rutasService = {
     },
 
     async getMisRutasFrecuentes(idUsuario) {
-        // Estrategia: Buscar "Viajes" donde el vehículo pertenezca al usuario,
+        // Estrategia: Buscar "Pedidos" donde el vehículo pertenezca al usuario,
         // y agrupar por idRuta. Como Prisma no hace "DISTINCT ON" complejo fácilmente con include,
-        // hacemos un findMany de viajes y extraemos las rutas únicas.
+        // hacemos un findMany de pedidos y extraemos las rutas únicas.
 
-        const viajesDelConductor = await prisma.viajes.findMany({
+        const pedidosDelRepartidor = await prisma.pedidos.findMany({
             where: {
                 vehiculo: {
                     idUsuario: parseInt(idUsuario)
@@ -156,7 +156,7 @@ const rutasService = {
             distinct: ['idRuta'] // Traer ids de rutas únicos
         });
 
-        const idsRutas = viajesDelConductor.map(v => v.idRuta);
+        const idsRutas = pedidosDelRepartidor.map(v => v.idRuta);
 
         if (idsRutas.length === 0) return [];
 
@@ -174,9 +174,9 @@ const rutasService = {
     },
 
     async calcularRutasOptimas(origen, destino, preferencia = 'FASTEST', k = 3) {
-        const RUTAS_PYTHON_URL = process.env.RUTAS_PYTHON_URL || 'http://localhost:8000';
+        const OPTIMIZER_URL = process.env.OPTIMIZER_URL || 'http://localhost:8000';
         try {
-            const response = await fetch(`${RUTAS_PYTHON_URL}/route-options`, {
+            const response = await fetch(`${OPTIMIZER_URL}/route-options`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -196,7 +196,7 @@ const rutasService = {
 
             return await response.json();
         } catch (error) {
-            console.error('Error al conectar con rutaspython:', error.message);
+            console.error('Error al conectar con optimizer:', error.message);
             throw error;
         }
     }

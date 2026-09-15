@@ -1,6 +1,6 @@
 const axios = require("axios");
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+
+const OPTIMIZER_URL = process.env.OPTIMIZER_URL || "http://localhost:8000";
 
 const PricingService = {
     /**
@@ -13,7 +13,7 @@ const PricingService = {
     },
 
     /**
-     * Calcula la distancia Haversine entre dos puntos
+     * Calcula la distancia Haversine entre dos puntos (km)
      */
     calcularDistancia(lat1, lng1, lat2, lng2) {
         const R = 6371; // Radio Tierra km
@@ -28,78 +28,72 @@ const PricingService = {
     },
 
     /**
-     * Estima el precio de un tramo usando rutaspython o Haversine
+     * Estima el precio de un pedido (domicilio) entre recogida y entrega.
+     * Tarifa: base 2000 + 800 * km. Comisión por distancia: <=5km 10%, <=15km 12%, >15km 15%.
      */
-    async estimarPrecioTramo({
-        idViaje,
-        latSubida, lngSubida,
-        latBajada, lngBajada,
-        idParadaSubida, idParadaBajada,
-        idUsuario = 0
-    }) {
-        let precioFinal = 0;
-        let comisionPlataforma = 0;
+    async estimarPrecioPedido({ latRecogida, lngRecogida, latEntrega, lngEntrega }) {
+        const latO = parseFloat(latRecogida);
+        const lngO = parseFloat(lngRecogida);
+        const latD = parseFloat(latEntrega);
+        const lngD = parseFloat(lngEntrega);
+
+        if ([latO, lngO, latD, lngD].some((v) => Number.isNaN(v))) {
+            throw new Error("Coordenadas de recogida y entrega son obligatorias y deben ser numéricas.");
+        }
+
         let distanciaRecorrida = 0;
 
-        const viaje = await prisma.viajes.findUnique({
-            where: { idViajes: parseInt(idViaje) },
-            include: {
-                ruta: {
-                    include: {
-                        paradas: { orderBy: { orden: 'asc' } }
-                    }
-                }
+        // 1. Intentar con el optimizador (/route-options) para obtener distancia_km
+        try {
+            const resp = await axios.post(
+                `${OPTIMIZER_URL}/route-options`,
+                {
+                    origin: { lat: latO, lng: lngO },
+                    destination: { lat: latD, lng: lngD },
+                    preference: "CHEAPEST",
+                    k: 1
+                },
+                { timeout: 10000 }
+            );
+
+            const data = resp?.data || {};
+            const candidato =
+                data.distancia_km ??
+                data.distanciaKm ??
+                data.distance_km ??
+                data.distanceKm ??
+                data?.options?.[0]?.distancia_km ??
+                data?.options?.[0]?.distance_km ??
+                data?.routes?.[0]?.distancia_km ??
+                data?.routes?.[0]?.distance_km ??
+                0;
+
+            const parsed = parseFloat(candidato);
+            if (!Number.isNaN(parsed) && parsed > 0) {
+                distanciaRecorrida = parsed;
             }
-        });
-
-        if (!viaje) throw new Error("Viaje no encontrado");
-
-        // 1. Intentar con rutaspython si hay IDs de paradas
-        if (idParadaSubida && idParadaBajada) {
-            try {
-                const RUTAS_PYTHON_URL = process.env.RUTAS_PYTHON_URL;
-                if (RUTAS_PYTHON_URL && viaje.ruta && viaje.ruta.paradas.length >= 2) {
-                    const paradasOrdenadas = viaje.ruta.paradas;
-                    const idxSubida = paradasOrdenadas.findIndex(p => p.idParada === parseInt(idParadaSubida));
-                    const idxBajada = paradasOrdenadas.findIndex(p => p.idParada === parseInt(idParadaBajada));
-
-                    if (idxSubida !== -1 && idxBajada !== -1 && idxBajada > idxSubida) {
-                        const body = {
-                            stops: paradasOrdenadas.map(p => ({ lat: parseFloat(p.lat), lng: parseFloat(p.lng) })),
-                            total_route_price_cop: Math.max(1, Math.round(parseFloat(viaje.precio || 0))),
-                            passengers: [{ passenger_id: idUsuario, start_index: idxSubida, end_index: idxBajada }]
-                        };
-
-                        const resp = await axios.post(`${RUTAS_PYTHON_URL}/segment-fares`, body, { timeout: 10000 });
-                        const seg = resp?.data?.passengers?.[0];
-
-                        if (seg && seg.fare_cop > 0) {
-                            distanciaRecorrida = parseFloat(seg.distance_km || 0);
-                            const baseSegmento = seg.fare_cop;
-                            comisionPlataforma = this.redondearCop(baseSegmento * 0.1);
-                            precioFinal = this.redondearCop(baseSegmento + comisionPlataforma);
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn("PricingService: RutasPython falló, usando fallback", err.message);
-            }
+        } catch (err) {
+            console.warn("PricingService: Optimizer falló, usando fallback Haversine", err.message);
         }
 
         // 2. Fallback Haversine
-        if (precioFinal === 0) {
-            if (distanciaRecorrida === 0) {
-                distanciaRecorrida = this.calcularDistancia(latSubida, lngSubida, latBajada, lngBajada);
-            }
-            const tarifaBase = 1500;
-            const tarifaPorKm = 500;
-            const subTotal = tarifaBase + (distanciaRecorrida * tarifaPorKm);
-            comisionPlataforma = this.redondearCop(subTotal * 0.10);
-            precioFinal = this.redondearCop(subTotal + comisionPlataforma);
+        if (!distanciaRecorrida || distanciaRecorrida <= 0) {
+            distanciaRecorrida = this.calcularDistancia(latO, lngO, latD, lngD);
         }
 
+        const subtotal = this.redondearCop(2000 + 800 * distanciaRecorrida);
+
+        let tasaComision = 0.15;
+        if (distanciaRecorrida <= 5) tasaComision = 0.10;
+        else if (distanciaRecorrida <= 15) tasaComision = 0.12;
+
+        const comisionPlataforma = this.redondearCop(subtotal * tasaComision);
+        const precioFinal = this.redondearCop(subtotal + comisionPlataforma);
+
         return {
+            subtotal,
             precioFinal,
+            total: precioFinal,
             comisionPlataforma,
             distanciaRecorrida,
             precioFormateado: `$ ${this.redondearCop(precioFinal).toLocaleString('es-CO')} COP`

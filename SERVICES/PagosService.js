@@ -8,12 +8,12 @@ const pagosService = {
         const pago = await prisma.pagos.create({
             data: {
                 idUsuario: parseInt(data.idUsuario),
-                idViaje: parseInt(data.idViaje),
+                idPedido: parseInt(data.idPedido),
                 monto: data.monto,
-                tipoPago: data.tipoPago, // VIAJE, PLAN_CONDUCTOR
+                tipoPago: data.tipoPago, // PEDIDO, PLAN_REPARTIDOR
                 estado: data.estado || 'PENDIENTE',
-                confirmacionPasajero: data.confirmacionPasajero || false,
-                confirmacionConductor: data.confirmacionConductor || false,
+                confirmacionCliente: data.confirmacionCliente || false,
+                confirmacionRepartidor: data.confirmacionRepartidor || false,
                 fechaPago: new Date()
             }
         });
@@ -36,26 +36,26 @@ const pagosService = {
     async getByUser(idUsuario) {
         return await prisma.pagos.findMany({
             where: { idUsuario: parseInt(idUsuario) },
-            include: { viaje: true }
+            include: { pedido: true }
         });
     },
 
-    async getByViaje(idViaje) {
+    async getByPedido(idPedido) {
         return await prisma.pagos.findMany({
-            where: { idViaje: parseInt(idViaje) },
+            where: { idPedido: parseInt(idPedido) },
             include: { usuario: { select: { nombre: true, email: true } } }
         });
     },
 
-    async getByViajeAndUser(idViaje, idUsuario) {
+    async getByPedidoAndUser(idPedido, idUsuario) {
         return await prisma.pagos.findUnique({
             where: {
-                idViaje_idUsuario: {
-                    idViaje: parseInt(idViaje),
+                idPedido_idUsuario: {
+                    idPedido: parseInt(idPedido),
                     idUsuario: parseInt(idUsuario)
                 }
             },
-            include: { viaje: true }
+            include: { pedido: true }
         });
     },
 
@@ -64,46 +64,46 @@ const pagosService = {
             where: { idPago: parseInt(idPago) },
             include: {
                 usuario: { select: { nombre: true, email: true } },
-                viaje: true
+                pedido: true
             }
         });
     },
 
     async updateConfirmacion(idPago, confirmacion) {
-        // confirmacion: { confirmacionPasajero: true } o { confirmacionConductor: true }
+        // confirmacion: { confirmacionCliente: true } o { confirmacionRepartidor: true }
         return await prisma.pagos.update({
             where: { idPago: parseInt(idPago) },
             data: confirmacion
         });
     },
 
-    async confirmarPasajero(idPago) {
+    async confirmarCliente(idPago) {
         const pago = await prisma.pagos.findUnique({ where: { idPago: parseInt(idPago) } });
         if (!pago) throw new Error("Pago no encontrado");
 
-        const nuevoEstado = pago.confirmacionConductor ? 'COMPLETADO' : 'CONFIRMADO_PASAJERO';
+        const nuevoEstado = pago.confirmacionRepartidor ? 'COMPLETADO' : 'CONFIRMADO_CLIENTE';
 
         return await prisma.pagos.update({
             where: { idPago: parseInt(idPago) },
             data: {
-                confirmacionPasajero: true,
+                confirmacionCliente: true,
                 estado: nuevoEstado
             }
         });
     },
 
-    async confirmarConductor(idPago) {
+    async confirmarRepartidor(idPago) {
         const pago = await prisma.pagos.findUnique({ where: { idPago: parseInt(idPago) } });
         if (!pago) throw new Error("Pago no encontrado");
-        if (!pago.confirmacionPasajero) {
-            const error = new Error("El pasajero aún no ha confirmado el pago");
+        if (!pago.confirmacionCliente) {
+            const error = new Error("El cliente aún no ha confirmado el pago");
             error.code = 400;
             throw error;
         }
         return await prisma.pagos.update({
             where: { idPago: parseInt(idPago) },
             data: {
-                confirmacionConductor: true,
+                confirmacionRepartidor: true,
                 estado: 'COMPLETADO'
             }
         });
