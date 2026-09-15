@@ -9,8 +9,9 @@ async function main() {
 
     const roles = [
         { nombre: 'ADMIN' },
-        { nombre: 'CONDUCTOR' },
-        { nombre: 'PASAJERO' }
+        { nombre: 'REPARTIDOR' },
+        { nombre: 'CLIENTE' },
+        { nombre: 'COMERCIO' }
     ];
 
     for (const rol of roles) {

@@ -1,7 +1,7 @@
 {
-  "name": "backendmovi",
-  "version": "1.0.0",
-  "description": "",
+  "name": "domiflex-backend",
+  "version": "0.1.0",
+  "description": "DomiFlex Backend - plataforma de domicilios (derivado de BACKENDMOVI)",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
