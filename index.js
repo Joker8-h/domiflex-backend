@@ -44,6 +44,9 @@ const notificacionesRoutes = require('./ROUTES/NotificacionesRoutes');
 const estadisticasRoutes = require('./ROUTES/EstadisticasRoutes');
 const contactoRoutes = require('./ROUTES/contactoroutes');
 const reportesPagoRoutes = require('./ROUTES/ReportesPagoRoutes');
+const negociosRoutes = require('./ROUTES/NegociosRoutes');
+const productoRoutes = require('./ROUTES/ProductoRoutes');
+const pedidoItemsRoutes = require('./ROUTES/PedidoItemsRoutes');
 
 // Usar Rutas
 app.use('/api/auth', authRoutes);
@@ -64,6 +67,9 @@ app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/estadisticas', estadisticasRoutes);
 app.use('/api/contacto', contactoRoutes);
 app.use('/api/reportes-pago', reportesPagoRoutes);
+app.use('/api/negocios', negociosRoutes);
+app.use('/api/productos', productoRoutes);
+app.use('/api/pedido-items', pedidoItemsRoutes);
 
 
 

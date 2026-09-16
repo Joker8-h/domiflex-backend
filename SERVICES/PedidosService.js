@@ -35,6 +35,7 @@ const pedidosService = {
                     idComercio: data.idComercio ? parseInt(data.idComercio) : null,
                     idRuta: data.idRuta ? parseInt(data.idRuta) : null,
                     idVehiculo: data.idVehiculo ? parseInt(data.idVehiculo) : null,
+                    negocioId: data.negocioId ? parseInt(data.negocioId) : null,
                     nombreRecogida: data.nombreRecogida || null,
                     dirRecogida: data.dirRecogida || null,
                     latRecogida,
@@ -52,6 +53,17 @@ const pedidosService = {
                     estado: "CREADO"
                 }
             });
+
+            // Crear items del pedido si se proporcionan
+            if (data.items && data.items.length > 0) {
+                const itemsData = data.items.map((item) => ({
+                    cantidad: item.cantidad || 1,
+                    precio: item.precio,
+                    pedidoId: creado.idPedido,
+                    menuItemId: item.menuItemId,
+                }));
+                await tx.pedidoItem.createMany({ data: itemsData });
+            }
 
             await tx.pagos.create({
                 data: {
@@ -127,7 +139,13 @@ const pedidosService = {
     async getMisPedidos(idCliente) {
         return await prisma.pedidos.findMany({
             where: { idCliente: parseInt(idCliente) },
-            include: { repartidor: { select: { nombre: true, fotoPerfil: true } }, ruta: true, vehiculo: true },
+            include: {
+                repartidor: { select: { nombre: true, fotoPerfil: true } },
+                ruta: true,
+                vehiculo: true,
+                negocio: { select: { id: true, nombre: true, imagen: true, tipo: true } },
+                items: { include: { menuItem: true } },
+            },
             orderBy: { creadoEn: "desc" }
         });
     },
@@ -135,7 +153,13 @@ const pedidosService = {
     async getPedidosRepartidor(idRepartidor) {
         return await prisma.pedidos.findMany({
             where: { idRepartidor: parseInt(idRepartidor) },
-            include: { cliente: { select: { nombre: true, fotoPerfil: true } }, ruta: true, vehiculo: true },
+            include: {
+                cliente: { select: { nombre: true, fotoPerfil: true } },
+                ruta: true,
+                vehiculo: true,
+                negocio: { select: { id: true, nombre: true, imagen: true, tipo: true } },
+                items: { include: { menuItem: true } },
+            },
             orderBy: { creadoEn: "desc" }
         });
     },
@@ -147,7 +171,9 @@ const pedidosService = {
                 cliente: { select: { nombre: true, email: true, fotoPerfil: true } },
                 repartidor: { select: { nombre: true, email: true, fotoPerfil: true } },
                 ruta: { include: { paradas: { orderBy: { orden: "asc" } } } },
-                vehiculo: true
+                vehiculo: true,
+                negocio: { select: { id: true, nombre: true, imagen: true, tipo: true, direccion: true, telefono: true } },
+                items: { include: { menuItem: true } },
             }
         });
     },

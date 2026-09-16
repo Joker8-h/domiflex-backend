@@ -110,6 +110,15 @@ enum EstadoReportePago {
   RECHAZADO
 }
 
+enum TipoNegocio {
+  COMIDA
+  FARMACIA
+  SUPERMERCADO
+  TIENDA
+  PAQUETERIA
+  OTRO
+}
+
 /**
  * =======================
  * MODELOS
@@ -147,10 +156,12 @@ model Usuarios {
   pedidosRepartidor Pedidos[] @relation("PedidoRepartidor")
   pedidosComercio   Pedidos[] @relation("PedidoComercio")
 
+  negocios Negocios[]
+
   calificacionesDadas     Calificaciones[] @relation("Calificador")
   calificacionesRecibidas Calificaciones[] @relation("Calificado")
 
-  conversacionesCliente   Conversaciones[] @relation("ConversacionCliente")
+  conversacionesCliente    Conversaciones[] @relation("ConversacionCliente")
   conversacionesRepartidor Conversaciones[] @relation("ConversacionRepartidor")
 
   documentacion Documentacion?
@@ -167,8 +178,8 @@ model Usuarios {
   resetTokenExpiry DateTime?
 
   // Datos de contacto de emergencia
-  nombreEmergencia String?   @db.VarChar(100)
-  numeroEmergencia String?   @db.VarChar(20)
+  nombreEmergencia String? @db.VarChar(100)
+  numeroEmergencia String? @db.VarChar(20)
 
   @@map("Usuarios")
 }
@@ -193,7 +204,7 @@ model Vehiculos {
   fotoAuto3     String? @db.VarChar(500)
   placaValidada Boolean @default(false)
 
-  usuario Usuarios @relation(fields: [idUsuario], references: [idUsuarios])
+  usuario Usuarios  @relation(fields: [idUsuario], references: [idUsuarios])
   pedidos Pedidos[]
 
   solicitudes SolicitudCambioVehiculo[]
@@ -238,6 +249,7 @@ model Pedidos {
   idComercio   Int?
   idRuta       Int?
   idVehiculo   Int?
+  negocioId    Int?
 
   // Punto de recogida (comercio / origen)
   nombreRecogida String?  @db.VarChar(255)
@@ -251,27 +263,29 @@ model Pedidos {
   latEntrega    Decimal? @db.Decimal(10, 8)
   lngEntrega    Decimal? @db.Decimal(11, 8)
 
-  detallePedido String?  @db.VarChar(500)
+  detallePedido String? @db.VarChar(500)
 
-  distanciaKm         Decimal? @db.Decimal(10, 2)
-  subtotal            Decimal? @db.Decimal(10, 2)
-  comisionPlataforma  Decimal? @db.Decimal(10, 2)
-  total               Decimal? @db.Decimal(10, 2)
+  distanciaKm        Decimal? @db.Decimal(10, 2)
+  subtotal           Decimal? @db.Decimal(10, 2)
+  comisionPlataforma Decimal? @db.Decimal(10, 2)
+  total              Decimal? @db.Decimal(10, 2)
 
-  tipoPago TipoPago    @default(EFECTIVO)
+  tipoPago TipoPago     @default(EFECTIVO)
   estado   EstadoPedido @default(CREADO)
-  creadoEn DateTime    @default(now())
+  creadoEn DateTime     @default(now())
 
-  cliente    Usuarios  @relation("PedidoCliente", fields: [idCliente], references: [idUsuarios])
-  repartidor Usuarios? @relation("PedidoRepartidor", fields: [idRepartidor], references: [idUsuarios])
-  comercio   Usuarios? @relation("PedidoComercio", fields: [idComercio], references: [idUsuarios])
-  ruta       Rutas?    @relation(fields: [idRuta], references: [idRuta])
+  cliente    Usuarios   @relation("PedidoCliente", fields: [idCliente], references: [idUsuarios])
+  repartidor Usuarios?  @relation("PedidoRepartidor", fields: [idRepartidor], references: [idUsuarios])
+  comercio   Usuarios?  @relation("PedidoComercio", fields: [idComercio], references: [idUsuarios])
+  ruta       Rutas?     @relation(fields: [idRuta], references: [idRuta])
   vehiculo   Vehiculos? @relation(fields: [idVehiculo], references: [idVehiculos])
+  negocio    Negocios?  @relation(fields: [negocioId], references: [id])
 
   paradas        PedidoParadas[]
   calificaciones Calificaciones[]
   conversaciones Conversaciones[]
   pagos          Pagos[]
+  items          PedidoItem[]
 
   @@map("Pedidos")
 }
@@ -338,16 +352,16 @@ model Mensajes {
 }
 
 model Pagos {
-  idPago                Int        @id @default(autoincrement())
-  idPedido              Int
-  idUsuario             Int
-  tipoPago              TipoPago
-  monto                 Decimal?   @db.Decimal(10, 2)
-  estado                EstadoPago @default(PENDIENTE)
-  confirmacionCliente   Boolean    @default(false)
-  confirmacionRepartidor Boolean   @default(false)
-  fechaPago             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
+  idPago                 Int        @id @default(autoincrement())
+  idPedido               Int
+  idUsuario              Int
+  tipoPago               TipoPago
+  monto                  Decimal?   @db.Decimal(10, 2)
+  estado                 EstadoPago @default(PENDIENTE)
+  confirmacionCliente    Boolean    @default(false)
+  confirmacionRepartidor Boolean    @default(false)
+  fechaPago              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
 
   usuario Usuarios @relation(fields: [idUsuario], references: [idUsuarios])
   pedido  Pedidos  @relation(fields: [idPedido], references: [idPedido])
@@ -495,4 +509,78 @@ model ReportesPago {
   usuario Usuarios @relation(fields: [idUsuario], references: [idUsuarios])
 
   @@map("ReportesPago")
+}
+
+model CategoriasNegocio {
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique @db.VarChar(100)
+  icono  String? @db.VarChar(10)
+  activo Boolean @default(true)
+
+  negocios Negocios[]
+}
+
+model Negocios {
+  id                  Int         @id @default(autoincrement())
+  nombre              String      @db.VarChar(150)
+  descripcion         String?     @db.VarChar(500)
+  tipo                TipoNegocio @default(COMIDA)
+  direccion           String      @db.VarChar(255)
+  latitud             Decimal     @db.Decimal(10, 8)
+  longitud            Decimal     @db.Decimal(11, 8)
+  telefono            String?     @db.VarChar(20)
+  imagen              String?     @db.VarChar(500)
+  banner              String?     @db.VarChar(500)
+  calificacion        Decimal     @default(0) @db.Decimal(3, 2)
+  totalCalificaciones Int         @default(0)
+  tiempoEstimadoMin   Int         @default(15)
+  costoEnvio          Int         @default(2000)
+  envioMinimo         Int         @default(0)
+  activo              Boolean     @default(true)
+
+  owner       Usuarios           @relation(fields: [ownerId], references: [idUsuarios])
+  ownerId     Int
+  categoriaId Int?
+  categoria   CategoriasNegocio? @relation(fields: [categoriaId], references: [id])
+
+  productos Producto[]
+  pedidos   Pedidos[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Negocios")
+}
+
+model Producto {
+  id          Int     @id @default(autoincrement())
+  nombre      String  @db.VarChar(150)
+  descripcion String? @db.VarChar(500)
+  precio      Int
+  imagen      String? @db.VarChar(500)
+  categoria   String  @db.VarChar(100)
+  disponible  Boolean @default(true)
+
+  restaurante   Negocios @relation(fields: [restauranteId], references: [id])
+  restauranteId Int
+
+  pedidoItems PedidoItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Producto")
+}
+
+model PedidoItem {
+  id       Int @id @default(autoincrement())
+  cantidad Int @default(1)
+  precio   Int
+
+  pedido     Pedidos  @relation(fields: [pedidoId], references: [idPedido])
+  pedidoId   Int
+  menuItem   Producto @relation(fields: [menuItemId], references: [id])
+  menuItemId Int
+
+  @@map("PedidoItem")
 }
