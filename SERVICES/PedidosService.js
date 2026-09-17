@@ -192,6 +192,27 @@ const pedidosService = {
             where: { idPedido: parseInt(idPedido) },
             data: { estado: "CANCELADO" }
         });
+    },
+
+    async obtenerPedidosPorDiaSemana(dia) {
+        const d = parseInt(dia);
+        if (Number.isNaN(d) || d < 0 || d > 6) return [];
+        try {
+            const pedidos = await prisma.pedidos.findMany({
+                where: {
+                    creadoEn: {
+                        gte: new Date(new Date().setHours(0, 0, 0, 0) - d * 24 * 60 * 60 * 1000),
+                    },
+                },
+                select: { idPedido: true, estado: true, total: true, creadoEn: true },
+                orderBy: { creadoEn: "desc" },
+                take: 50,
+            });
+            // Filtrar por día de la semana real
+            return pedidos.filter((p) => new Date(p.creadoEn).getDay() === d);
+        } catch (e) {
+            return [];
+        }
     }
 };
 

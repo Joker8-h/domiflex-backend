@@ -27,10 +27,10 @@ router.post('/:id/cancelar', authorize(['REPARTIDOR', 'CLIENTE', 'COMERCIO', 'AD
 // Estimar precio de entrega
 router.get('/:id/estimar-precio', pedidosController.estimarPrecio);
 
+// Estadísticas de pedidos por día (antes de /:id para evitar colisión)
+router.get('/dia/:dia', authorize(['ADMIN']), pedidosController.getPedidosPorDia);
+
 // Ver detalle pedido
 router.get('/:id', pedidosController.getById);
-
-// Estadísticas de pedidos por día
-router.get('/dia/:dia', authorize(['ADMIN']), pedidosController.getPedidosPorDia);
 
 module.exports = router;
