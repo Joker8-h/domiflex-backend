@@ -183,10 +183,8 @@ const documentacionController = {
     async getAll(req, res) {
         try {
             const docs = await documentacionService.getAll();
-            if (!docs || docs.length === 0) {
-                return res.json({ message: "No hay documentación registrada" });
-            }
-            res.status(200).json(docs);
+            // Siempre array: el frontend espera lista (vacía = sin registros)
+            return res.status(200).json(Array.isArray(docs) ? docs : []);
         } catch (error) {
             console.error("ERROR REAL ", error);
             res.status(500).json({
