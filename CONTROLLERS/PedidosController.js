@@ -52,10 +52,10 @@ const pedidosController = {
         try {
             const { id } = req.params;
             const pedido = await pedidosService.getById(id);
-            if (!pedido) return res.status(404).json({ error: "Pedido no encontrado" });
+            if (!pedido) return res.json({ error: "Pedido no encontrado" });
             res.json(pedido);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            res.json({ error: error.message });
         }
     },
 
