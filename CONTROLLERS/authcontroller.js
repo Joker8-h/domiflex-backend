@@ -293,6 +293,15 @@ const authController = {
         } catch (error) {
             res.status(400).json({ error: error.message });
         }
+    },
+
+    async guardarFcmToken(req, res) {
+        try {
+            const resultado = await authService.guardarFcmToken(req.user.id, req.body.token);
+            res.json(resultado);
+        } catch (error) {
+            res.status(400).json({ error: error.message });
+        }
     }
 }
 module.exports = authController;

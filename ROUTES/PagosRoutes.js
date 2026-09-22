@@ -5,6 +5,7 @@ const verificarToken = require('../MIDDLEWARE/authmiddleware');
 
 router.use(verificarToken);
 
+router.post('/wompi/checkout', pagosController.checkoutWompi);
 router.post('/', pagosController.create);
 router.get('/', pagosController.getMyPagos);
 router.get('/pedido/:idPedido', pagosController.getByPedido);

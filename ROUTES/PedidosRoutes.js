@@ -19,6 +19,7 @@ router.get('/mis-pedidos', authorize(['REPARTIDOR', 'CLIENTE', 'COMERCIO', 'ADMI
 
 // Asignar repartidor
 router.post('/:id/asignar', authorize(['REPARTIDOR', 'ADMIN', 'COMERCIO']), pedidosController.asignar);
+router.post('/:id/ubicacion', authorize(['REPARTIDOR']), pedidosController.publicarUbicacion);
 
 // Cambiar estado (ASIGNADO, RECOGIENDO, EN_CAMINO, ENTREGADO)
 router.post('/:id/estado', authorize(['REPARTIDOR', 'ADMIN']), pedidosController.cambiarEstado);

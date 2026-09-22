@@ -1,0 +1,1 @@
+ALTER TABLE `Usuarios` ADD COLUMN `fcmToken` VARCHAR(512) NULL;

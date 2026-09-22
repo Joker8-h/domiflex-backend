@@ -2,6 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient({});
 const pricingService = require("./PricingService");
 const socketService = require("./SocketService");
+const pushService = require("./PushService");
 
 function anunciarPedido(pedido, titulo, mensaje) {
     const payload = {
@@ -18,6 +19,12 @@ function anunciarPedido(pedido, titulo, mensaje) {
     if (pedido.idRepartidor && pedido.idRepartidor !== pedido.idCliente) {
         socketService.notifyUser(pedido.idRepartidor, "pedido_actualizado", payload, titulo, mensaje, "PEDIDO");
     }
+    pushService.enviarAUsuarios(
+        [pedido.idCliente, pedido.idRepartidor],
+        titulo,
+        mensaje,
+        { idPedido: String(pedido.idPedido), estado: pedido.estado || "" }
+    );
 }
 
 const TRANSICIONES_VALIDAS = {
@@ -280,6 +287,32 @@ const pedidosService = {
             },
             orderBy: { creadoEn: "desc" }
         });
+    },
+
+    async buscarPedidosDisponibles() {
+        return prisma.pedidos.findMany({
+            where: { estado: "CREADO", idRepartidor: null },
+            include: {
+                cliente: { select: { nombre: true } },
+                negocio: { select: { id: true, nombre: true, direccion: true } },
+            },
+            orderBy: { creadoEn: "desc" },
+            take: 30,
+        });
+    },
+
+    async publicarUbicacion(idPedido, idRepartidor, lat, lng) {
+        const pedido = await prisma.pedidos.findUnique({ where: { idPedido: parseInt(idPedido) } });
+        if (!pedido) throw new Error("Pedido no encontrado");
+        if (pedido.idRepartidor !== parseInt(idRepartidor)) {
+            throw new Error("Solo el domiciliario asignado puede publicar su ubicación");
+        }
+        if (!["ASIGNADO", "RECOGIENDO", "EN_CAMINO"].includes(pedido.estado)) {
+            throw new Error("Este pedido no está en ruta");
+        }
+        const punto = { idPedido: pedido.idPedido, lat: Number(lat), lng: Number(lng), timestamp: new Date().toISOString() };
+        socketService.emitPedido(pedido.idPedido, "location_updated", punto);
+        return punto;
     },
 
     async getById(id) {

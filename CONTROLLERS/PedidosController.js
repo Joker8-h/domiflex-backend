@@ -49,7 +49,7 @@ const pedidosController = {
             const idUsuario = req.user.id;
             const rol = req.user.rol?.toUpperCase();
             const pedidos = rol === 'REPARTIDOR'
-                ? await pedidosService.getPedidosRepartidor(idUsuario)
+                ? await pedidosService.buscarPedidosDisponibles()
                 : await pedidosService.getMisPedidos(idUsuario);
             res.json(pedidos);
         } catch (error) {
@@ -77,6 +77,20 @@ const pedidosController = {
             res.json({ message: "Pedido asignado", pedido });
         } catch (error) {
             res.json({ error: error.message });
+        }
+    },
+
+    async publicarUbicacion(req, res) {
+        try {
+            const punto = await pedidosService.publicarUbicacion(
+                req.params.id,
+                req.user.id,
+                req.body.lat,
+                req.body.lng
+            );
+            res.json(punto);
+        } catch (error) {
+            res.status(400).json({ error: error.message });
         }
     },
 

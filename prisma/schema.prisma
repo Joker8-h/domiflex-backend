@@ -140,6 +140,7 @@ model Usuarios {
   telefono     String?       @db.VarChar(20)
   passwordHash String        @db.VarChar(255)
   fotoPerfil   String?       @db.VarChar(500)
+  fcmToken     String?       @db.VarChar(512)
   estado       EstadoUsuario @default(ACTIVO)
   creadoEn     DateTime      @default(now())
 

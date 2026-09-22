@@ -1,6 +1,16 @@
 const pagosService = require("../SERVICES/PagosService");
+const wompiService = require("../SERVICES/WompiService");
 
 const pagosController = {
+    async checkoutWompi(req, res) {
+        try {
+            const checkout = await wompiService.crearCheckout(req.body.idPedido, req.user.id);
+            res.json(checkout);
+        } catch (error) {
+            res.status(error.status || 400).json({ error: error.message });
+        }
+    },
+
     async create(req, res) {
         try {
             const idUsuario = req.user.id;

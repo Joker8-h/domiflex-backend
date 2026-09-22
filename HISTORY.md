@@ -155,13 +155,15 @@ Plataforma de delivery para Popayán, Colombia. Originalmente "Moviflex" (ride-s
 - [x] **Comercio**: `/comercio` con menú y pedidos; solo el dueño edita su negocio
 - [x] **Efectivo**: el cliente confirma en tracking y el repartidor confirma después (`CONFIRMADO_CLIENTE` → `COMPLETADO`)
 - [x] **Registro**: solo `CLIENTE`, `REPARTIDOR` o `COMERCIO`; no se puede crear `ADMIN`
-- [x] **Seed**: roles, cuentas demo y Saber Casero Popayán en `prisma/seed.js` (hay que correr `npx prisma db seed` con `DATABASE_URL`)
+- [x] **Seed**: roles, cuentas demo y Saber Casero Popayán en `prisma/seed.js`
 - [x] **Android mínimo**: el login guarda el token, el checkout usa GPS y el tracking consulta el estado
+- [x] **Wompi**: el carrito ofrece pago en línea (Nequi, PSE y tarjeta). Sin las claves el pedido queda en efectivo. El webhook `POST /api/pagos/wompi` marca el pago `COMPLETADO` solo si la firma es válida
+- [x] **Push**: `POST /api/auth/fcm-token` guarda el token. El aviso sale si existe `FIREBASE_SERVICE_ACCOUNT`; si no, queda la notificación en base de datos. Falta `google-services.json` para que el APK reciba mensajes
+- [x] **Repartidor Android**: si el login trae `REPARTIDOR`, abre el home de domiciliario (tomar pedido, estados, efectivo y GPS)
 
 ### Sigue pendiente
-- [ ] **Pagos**: pasarela Nequi/Daviplata/PSE
-- [ ] **Notificaciones push**: Firebase Cloud Messaging en Android
-- [ ] **Repartidor Android**: las pantallas de conductor siguen siendo layouts vacíos; el repartidor opera en la web
+- [ ] **Daviplata**: no entra en el checkout estándar de Wompi
+- [ ] **Firebase**: el proyecto y `google-services.json` hay que crearlos; no se inventan
 
 ---
 

@@ -834,6 +834,18 @@ const authService = {
         });
 
         return { mensaje: "Contraseña actualizada correctamente." };
+    },
+
+    async guardarFcmToken(idUsuario, token) {
+        const limpio = String(token || "").trim();
+        if (!limpio || limpio.length > 512) {
+            throw new Error("Token de notificación inválido.");
+        }
+        await prisma.usuarios.update({
+            where: { idUsuarios: parseInt(idUsuario) },
+            data: { fcmToken: limpio },
+        });
+        return { mensaje: "Token de notificación guardado." };
     }
 };
 
