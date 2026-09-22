@@ -9,6 +9,8 @@ router.use(verificarToken);
 // Crear pedido: Cliente, Comercio, Admin (la creación vive en PedidosController.crearPedido)
 router.post('/', authorize(['CLIENTE', 'COMERCIO', 'ADMIN', 'REPARTIDOR']), pedidosController.crearPedido);
 
+router.post('/cotizar', authorize(['CLIENTE', 'COMERCIO', 'ADMIN', 'REPARTIDOR']), pedidosController.cotizar);
+
 // Buscar pedidos: Público autenticado
 router.get('/buscar', pedidosController.search);
 

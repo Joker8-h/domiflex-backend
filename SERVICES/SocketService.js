@@ -105,18 +105,24 @@ class SocketService {
             });
 
             // Evento para que el repartidor envíe su ubicación
-            socket.on("repartidor_location_update", (data) => {
+            socket.on("repartidor_location_update", async (data) => {
                 const { idPedido, lat, lng, rumbo } = data;
-                
-                if (!idPedido || !lat || !lng) return;
 
-                // Solo permitir si el usuario es repartidor (seguridad básica)
-                // Nota: En una app real, verificaríamos que sea EL repartidor asignado a ese pedido
+                if (!idPedido || lat == null || lng == null) return;
                 if (rol !== "REPARTIDOR") return;
 
+                try {
+                    const pedido = await prisma.pedidos.findUnique({
+                        where: { idPedido: parseInt(idPedido) },
+                        select: { idRepartidor: true },
+                    });
+                    if (!pedido || pedido.idRepartidor !== id) return;
+                } catch (err) {
+                    console.error("No se pudo validar el repartidor del pedido:", err.message);
+                    return;
+                }
+
                 const roomName = `pedido_${idPedido}`;
-                
-                // Reenviar ubicación a todos los clientes en la sala
                 this.io.to(roomName).emit("location_updated", {
                     idPedido,
                     lat,
@@ -124,8 +130,6 @@ class SocketService {
                     rumbo,
                     timestamp: new Date()
                 });
-                
-                console.log(`Ubicación enviada pedido ${idPedido}: ${lat}, ${lng}`);
             });
 
         });
@@ -187,6 +191,11 @@ class SocketService {
                 console.error(`Error al persistir notificación para usuario ${userId}:`, error.message);
             }
         }
+    }
+
+    emitPedido(idPedido, event, data) {
+        if (!this.io || !idPedido) return;
+        this.io.to(`pedido_${idPedido}`).emit(event, data);
     }
 
     getOnlineUsers() {

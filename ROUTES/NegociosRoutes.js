@@ -8,6 +8,7 @@ const NegociosController = require("../CONTROLLERS/NegociosController");
 router.get("/", NegociosController.getAll);
 router.get("/tipo/:tipo", NegociosController.getPorTipo);
 router.get("/mis-negocios", auth, NegociosController.getMisNegocios);
+router.get("/:id/menu", auth, role(["COMERCIO", "ADMIN"]), NegociosController.getMenuGestion);
 router.get("/:id/productos", NegociosController.getProductos);
 router.get("/:id", NegociosController.getById);
 

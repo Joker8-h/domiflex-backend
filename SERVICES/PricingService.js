@@ -1,6 +1,7 @@
 const axios = require("axios");
 
-const OPTIMIZER_URL = process.env.OPTIMIZER_URL || "http://localhost:8000";
+const OPTIMIZER_URL = process.env.OPTIMIZER_URL || "";
+const OSRM_BASE_URL = (process.env.OSRM_BASE_URL || "https://domiflex-osrm-production.up.railway.app").replace(/\/$/, "");
 
 const PricingService = {
     /**
@@ -43,37 +44,49 @@ const PricingService = {
 
         let distanciaRecorrida = 0;
 
-        // 1. Intentar con el optimizador (/route-options) para obtener distancia_km
-        try {
-            const resp = await axios.post(
-                `${OPTIMIZER_URL}/route-options`,
-                {
-                    origin: { lat: latO, lng: lngO },
-                    destination: { lat: latD, lng: lngD },
-                    preference: "CHEAPEST",
-                    k: 1
-                },
-                { timeout: 10000 }
-            );
+        if (OPTIMIZER_URL) {
+            try {
+                const resp = await axios.post(
+                    `${OPTIMIZER_URL.replace(/\/$/, "")}/route-options`,
+                    {
+                        origin: { lat: latO, lng: lngO },
+                        destination: { lat: latD, lng: lngD },
+                        preference: "CHEAPEST",
+                        k: 1
+                    },
+                    { timeout: 10000 }
+                );
 
-            const data = resp?.data || {};
-            const candidato =
-                data.distancia_km ??
-                data.distanciaKm ??
-                data.distance_km ??
-                data.distanceKm ??
-                data?.options?.[0]?.distancia_km ??
-                data?.options?.[0]?.distance_km ??
-                data?.routes?.[0]?.distancia_km ??
-                data?.routes?.[0]?.distance_km ??
-                0;
+                const data = resp?.data || {};
+                const candidato =
+                    data.distancia_km ??
+                    data.distanciaKm ??
+                    data.distance_km ??
+                    data.distanceKm ??
+                    data?.options?.[0]?.distancia_km ??
+                    data?.options?.[0]?.distance_km ??
+                    data?.routes?.[0]?.distancia_km ??
+                    data?.routes?.[0]?.distance_km ??
+                    0;
 
-            const parsed = parseFloat(candidato);
-            if (!Number.isNaN(parsed) && parsed > 0) {
-                distanciaRecorrida = parsed;
+                const parsed = parseFloat(candidato);
+                if (!Number.isNaN(parsed) && parsed > 0) {
+                    distanciaRecorrida = parsed;
+                }
+            } catch (err) {
+                console.warn("PricingService: Optimizer falló, se intenta OSRM", err.message);
             }
-        } catch (err) {
-            console.warn("PricingService: Optimizer falló, usando fallback Haversine", err.message);
+        }
+
+        if (!distanciaRecorrida || distanciaRecorrida <= 0) {
+            try {
+                const url = `${OSRM_BASE_URL}/route/v1/driving/${lngO},${latO};${lngD},${latD}?overview=false`;
+                const resp = await axios.get(url, { timeout: 8000 });
+                const metros = resp?.data?.routes?.[0]?.distance;
+                if (metros > 0) distanciaRecorrida = metros / 1000;
+            } catch (err) {
+                console.warn("PricingService: OSRM falló, usando Haversine", err.message);
+            }
         }
 
         // 2. Fallback Haversine

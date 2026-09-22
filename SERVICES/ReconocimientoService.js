@@ -1,4 +1,4 @@
-const RECONOCIMIENTO_URL = process.env.IA_FACIAL_URL || "https://reconocimientofacial-production-6b61.up.railway.app";
+const RECONOCIMIENTO_URL = process.env.IA_FACIAL_URL || "https://domiflex-facial-production.up.railway.app";
 
 const reconocimientoService = {
     async registrarRostro(nombre, base64Image, imageUrl = null) {

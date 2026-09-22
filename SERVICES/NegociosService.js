@@ -61,11 +61,33 @@ class NegociosService {
     });
   }
 
-  async update(id, data) {
-    await this.getById(id);
+  rolDe(user) {
+    const raw = user?.rol?.nombre || user?.rol;
+    return String(raw || "").toUpperCase();
+  }
+
+  async assertPuedeEditar(id, user) {
+    const negocio = await prisma.negocios.findUnique({ where: { id: Number(id) } });
+    if (!negocio) throw new Error("Negocio no encontrado");
+    if (this.rolDe(user) === "ADMIN") return negocio;
+    if (negocio.ownerId !== Number(user?.id)) {
+      const err = new Error("No puedes modificar este negocio.");
+      err.status = 403;
+      throw err;
+    }
+    return negocio;
+  }
+
+  async update(id, data, user) {
+    await this.assertPuedeEditar(id, user);
+    const permitidos = ["nombre", "descripcion", "tipo", "direccion", "latitud", "longitud", "telefono", "imagen", "banner", "tiempoEstimadoMin", "costoEnvio", "envioMinimo", "categoriaId", "activo"];
+    const limpio = {};
+    for (const campo of permitidos) {
+      if (data[campo] !== undefined) limpio[campo] = data[campo];
+    }
     return prisma.negocios.update({
       where: { id: Number(id) },
-      data,
+      data: limpio,
     });
   }
 
@@ -76,6 +98,14 @@ class NegociosService {
         categoria: true,
         _count: { select: { productos: true, pedidos: true } },
       },
+    });
+  }
+
+  async getMenuGestion(negocioId, user) {
+    await this.assertPuedeEditar(negocioId, user);
+    return prisma.producto.findMany({
+      where: { restauranteId: Number(negocioId) },
+      orderBy: [{ categoria: "asc" }, { nombre: "asc" }],
     });
   }
 

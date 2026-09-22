@@ -3,6 +3,17 @@ const prisma = new PrismaClient({
 });
 const notificacionesService = require("./NotificacionesService");
 
+function rolDe(user) {
+    const raw = user?.rol?.nombre || user?.rol;
+    return String(raw || "").toUpperCase();
+}
+
+function denegar(mensaje, status = 403) {
+    const error = new Error(mensaje);
+    error.status = status;
+    throw error;
+}
+
 const pagosService = {
     async create(data) {
         const pago = await prisma.pagos.create({
@@ -40,7 +51,16 @@ const pagosService = {
         });
     },
 
-    async getByPedido(idPedido) {
+    async getByPedido(idPedido, user) {
+        const pedido = await prisma.pedidos.findUnique({
+            where: { idPedido: parseInt(idPedido) },
+            select: { idCliente: true, idRepartidor: true, idComercio: true },
+        });
+        if (!pedido) denegar("Pedido no encontrado", 404);
+        const uid = Number(user?.id);
+        const rol = rolDe(user);
+        const participa = pedido.idCliente === uid || pedido.idRepartidor === uid || pedido.idComercio === uid;
+        if (rol !== "ADMIN" && !participa) denegar("No puedes ver este pago.");
         return await prisma.pagos.findMany({
             where: { idPedido: parseInt(idPedido) },
             include: { usuario: { select: { nombre: true, email: true } } }
@@ -69,19 +89,36 @@ const pagosService = {
         });
     },
 
-    async updateConfirmacion(idPago, confirmacion) {
-        // confirmacion: { confirmacionCliente: true } o { confirmacionRepartidor: true }
-        return await prisma.pagos.update({
+    async pagoConPedido(idPago) {
+        const pago = await prisma.pagos.findUnique({
             where: { idPago: parseInt(idPago) },
-            data: confirmacion
+            include: { pedido: { select: { idCliente: true, idRepartidor: true } } },
         });
+        if (!pago) denegar("Pago no encontrado", 404);
+        return pago;
     },
 
-    async confirmarCliente(idPago) {
-        const pago = await prisma.pagos.findUnique({ where: { idPago: parseInt(idPago) } });
-        if (!pago) throw new Error("Pago no encontrado");
+    async updateConfirmacion(idPago, confirmacion, user) {
+        if (confirmacion?.confirmacionCliente === true && confirmacion?.confirmacionRepartidor === true) {
+            denegar("Cliente y repartidor confirman por separado.");
+        }
+        if (confirmacion?.confirmacionCliente === true) {
+            return this.confirmarCliente(idPago, user);
+        }
+        if (confirmacion?.confirmacionRepartidor === true) {
+            return this.confirmarRepartidor(idPago, user);
+        }
+        denegar("No puedes cambiar la confirmación de este pago.");
+    },
 
-        const nuevoEstado = pago.confirmacionRepartidor ? 'COMPLETADO' : 'CONFIRMADO_CLIENTE';
+    async confirmarCliente(idPago, user) {
+        const pago = await this.pagoConPedido(idPago);
+        const uid = Number(user?.id);
+        if (rolDe(user) !== "ADMIN" && pago.pedido?.idCliente !== uid) {
+            denegar("Solo el cliente del pedido puede confirmar este pago.");
+        }
+
+        const nuevoEstado = pago.confirmacionRepartidor ? "COMPLETADO" : "CONFIRMADO_CLIENTE";
 
         return await prisma.pagos.update({
             where: { idPago: parseInt(idPago) },
@@ -92,19 +129,20 @@ const pagosService = {
         });
     },
 
-    async confirmarRepartidor(idPago) {
-        const pago = await prisma.pagos.findUnique({ where: { idPago: parseInt(idPago) } });
-        if (!pago) throw new Error("Pago no encontrado");
+    async confirmarRepartidor(idPago, user) {
+        const pago = await this.pagoConPedido(idPago);
+        const uid = Number(user?.id);
+        if (rolDe(user) !== "ADMIN" && pago.pedido?.idRepartidor !== uid) {
+            denegar("Solo el repartidor asignado puede confirmar este pago.");
+        }
         if (!pago.confirmacionCliente) {
-            const error = new Error("El cliente aún no ha confirmado el pago");
-            error.code = 400;
-            throw error;
+            denegar("El cliente aún no ha confirmado el pago", 400);
         }
         return await prisma.pagos.update({
             where: { idPago: parseInt(idPago) },
             data: {
                 confirmacionRepartidor: true,
-                estado: 'COMPLETADO'
+                estado: "COMPLETADO"
             }
         });
     }

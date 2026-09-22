@@ -174,7 +174,8 @@ const rutasService = {
     },
 
     async calcularRutasOptimas(origen, destino, preferencia = 'FASTEST', k = 3) {
-        const OPTIMIZER_URL = process.env.OPTIMIZER_URL || 'http://localhost:8000';
+        const OPTIMIZER_URL = process.env.OPTIMIZER_URL || '';
+        if (!OPTIMIZER_URL) throw new Error("OPTIMIZER_URL no está configurada.");
         try {
             const response = await fetch(`${OPTIMIZER_URL}/route-options`, {
                 method: 'POST',

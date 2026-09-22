@@ -18,7 +18,25 @@ class ProductoService {
     return producto;
   }
 
-  async create(data) {
+  rolDe(user) {
+    const raw = user?.rol?.nombre || user?.rol;
+    return String(raw || "").toUpperCase();
+  }
+
+  async assertDueno(restauranteId, user) {
+    const negocio = await prisma.negocios.findUnique({ where: { id: Number(restauranteId) } });
+    if (!negocio) throw new Error("Negocio no encontrado");
+    if (this.rolDe(user) === "ADMIN") return negocio;
+    if (negocio.ownerId !== Number(user?.id)) {
+      const err = new Error("No puedes modificar el menú de este negocio.");
+      err.status = 403;
+      throw err;
+    }
+    return negocio;
+  }
+
+  async create(data, user) {
+    await this.assertDueno(data.restauranteId, user);
     return prisma.producto.create({
       data: {
         nombre: data.nombre,
@@ -32,16 +50,23 @@ class ProductoService {
     });
   }
 
-  async update(id, data) {
-    await this.getById(id);
+  async update(id, data, user) {
+    const actual = await this.getById(id);
+    await this.assertDueno(actual.restauranteId, user);
+    const permitidos = ["nombre", "descripcion", "precio", "imagen", "categoria", "disponible"];
+    const limpio = {};
+    for (const campo of permitidos) {
+      if (data[campo] !== undefined) limpio[campo] = data[campo];
+    }
     return prisma.producto.update({
       where: { id: Number(id) },
-      data,
+      data: limpio,
     });
   }
 
-  async delete(id) {
-    await this.getById(id);
+  async delete(id, user) {
+    const actual = await this.getById(id);
+    await this.assertDueno(actual.restauranteId, user);
     return prisma.producto.delete({ where: { id: Number(id) } });
   }
 

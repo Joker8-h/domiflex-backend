@@ -31,10 +31,10 @@ class NegociosController {
 
   async update(req, res) {
     try {
-      const negocio = await NegociosService.update(req.params.id, req.body);
+      const negocio = await NegociosService.update(req.params.id, req.body, req.user);
       res.json(negocio);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      res.status(error.status || 400).json({ error: error.message });
     }
   }
 
@@ -44,6 +44,15 @@ class NegociosController {
       res.json(negocios);
     } catch (error) {
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getMenuGestion(req, res) {
+    try {
+      const productos = await NegociosService.getMenuGestion(req.params.id, req.user);
+      res.json(productos);
+    } catch (error) {
+      res.status(error.status || 404).json({ error: error.message });
     }
   }
 

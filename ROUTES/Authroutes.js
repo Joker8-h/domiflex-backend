@@ -7,7 +7,7 @@ const authController = require('../CONTROLLERS/authcontroller.js');
 // Rate Limiting para Login (protección contra fuerza bruta)
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 10000, // Solo 10000 intentos de login por IP
+    max: 100,
     message: 'Demasiados intentos de inicio de sesión. Por favor intente más tarde.',
     standardHeaders: true,
     legacyHeaders: false,
@@ -35,11 +35,8 @@ router.patch('/:id/estado', verfificacion, authorize(['ADMIN']), authController.
 router.delete('/:id', verfificacion, authorize(['ADMIN']), authController.eliminarUsuario);
 router.get('/search', verfificacion, authorize(['ADMIN']), authController.buscarUsuarios);
 router.get('/online-users', verfificacion, authorize(['ADMIN']), authController.getOnlineUsers);
-router.get('/:id', verfificacion, authorize(['ADMIN', 'CLIENTE', 'COMERCIO', 'REPARTIDOR']), authController.getUsuarioById);
-
-
-
 router.get('/usuarios/dia/:dia', verfificacion, authorize(['ADMIN']), authController.getUsuariosPorDia);
+router.get('/:id', verfificacion, authorize(['ADMIN', 'CLIENTE', 'COMERCIO', 'REPARTIDOR']), authController.getUsuarioById);
 
 
 module.exports = router;

@@ -4,7 +4,7 @@ const FormData = require('form-data');
 const aiObjectRecognitionService = {
     // URL del servidor Python (ajustar según configuración)
     get AI_LICENSE_URL() {
-        let url = process.env.AI_LICENSE_URL || "http://localhost:8000/predict";
+        let url = process.env.AI_LICENSE_URL || process.env.IA_OBJETOS_URL || "";
         if (url && !url.startsWith('http')) {
             url = 'https://' + url;
         }
@@ -15,7 +15,7 @@ const aiObjectRecognitionService = {
         return url;
     },
     get AI_PLATE_URL() {
-        let url = process.env.AI_PLATE_URL || "http://localhost:8000/verificar-placa";
+        let url = process.env.AI_PLATE_URL || process.env.IA_PLACA_URL || "";
         if (url && !url.startsWith('http')) {
             url = 'https://' + url;
         }
@@ -63,7 +63,7 @@ const aiObjectRecognitionService = {
 
     get AI_PLATE_URL_URL() {
         // Obtenemos la URL base (que podría terminar en /verificar-placa o similar)
-        let url = process.env.AI_PLATE_URL || "http://localhost:8000";
+        let url = process.env.AI_PLATE_URL || process.env.IA_PLACA_URL || "";
         console.log(`[AI-BRIDGE-DEBUG] Raw process.env.AI_PLATE_URL: ${url}`);
 
         // Extraemos solo el dominio/base

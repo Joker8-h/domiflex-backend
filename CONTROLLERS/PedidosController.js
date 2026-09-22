@@ -21,7 +21,16 @@ const pedidosController = {
             const nuevoPedido = await pedidosService.crearPedido(idCliente, req.body);
             res.json(nuevoPedido);
         } catch (error) {
-            res.json({ error: error.message });
+            res.status(400).json({ error: error.message });
+        }
+    },
+
+    async cotizar(req, res) {
+        try {
+            const cotizacion = await pedidosService.cotizarPedido(req.body);
+            res.json(cotizacion);
+        } catch (error) {
+            res.status(400).json({ error: error.message });
         }
     },
 
@@ -86,7 +95,8 @@ const pedidosController = {
         try {
             const { id } = req.params;
             const idUsuario = req.user.id;
-            const pedido = await pedidosService.cancelarPedido(id, idUsuario);
+            const rol = req.user.rol?.nombre || req.user.rol;
+            const pedido = await pedidosService.cancelarPedido(id, idUsuario, rol);
             res.json({ message: "Pedido cancelado", pedido });
         } catch (error) {
             res.json({ error: error.message });
@@ -101,7 +111,9 @@ const pedidosController = {
             let pedidos;
             if (rol === 'REPARTIDOR') {
                 pedidos = await pedidosService.getPedidosRepartidor(idUsuario);
-            } else if (rol === 'CLIENTE' || rol === 'COMERCIO') {
+            } else if (rol === 'COMERCIO') {
+                pedidos = await pedidosService.getPedidosComercio(idUsuario);
+            } else if (rol === 'CLIENTE') {
                 pedidos = await pedidosService.getMisPedidos(idUsuario);
             } else {
                 // Para ADMIN o si no hay rol claro, traer pedidos del repartidor por defecto

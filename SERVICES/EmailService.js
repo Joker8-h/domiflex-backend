@@ -78,7 +78,7 @@ const EmailService = {
                         <p>Nos complace informarte que tu cuenta en <strong>MoviFlex</strong> ha sido activada satisfactoriamente por nuestro equipo administrativo.</p>
                         <p>A partir de este momento, ya puedes iniciar sesión en la plataforma y comenzar a disfrutar de todos los servicios que tenemos para ti.</p>
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="${process.env.FRONTEND_URL || 'https://moviflexconreact-production.up.railway.app'}/login" style="background-color: #4acfbd; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Iniciar Sesión ahora</a>
+                            <a href="${process.env.FRONTEND_URL || 'https://domiflex-web-production.up.railway.app'}/login" style="background-color: #4acfbd; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Iniciar Sesión ahora</a>
                         </div>
                         <p>¡Gracias por confiar en nosotros!</p>
                         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
@@ -137,7 +137,7 @@ const EmailService = {
                         </div>
                         <p>Ingresa al panel de administración para revisar y aprobar o rechazar este reporte.</p>
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="${process.env.FRONTEND_URL || 'https://moviflexconreact-production.up.railway.app'}/admin/reportes-pago" style="background-color: #4acfbd; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver Reportes de Pago</a>
+                            <a href="${process.env.FRONTEND_URL || 'https://domiflex-web-production.up.railway.app'}/admin/reportes-pago" style="background-color: #4acfbd; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver Reportes de Pago</a>
                         </div>
                         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
                         <p style="font-size: 12px; color: #8899a6; text-align: center;">MoviFlex Team</p>
@@ -225,7 +225,7 @@ const EmailService = {
                         </div>
                         <p>⚠️ <strong>Importante:</strong> Si no envías el comprobante de pago antes de que termine el mes, tu cuenta será <strong>suspendida automáticamente</strong> y no podrás seguir ofreciendo pedidos.</p>
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="${process.env.FRONTEND_URL || 'https://moviflexconreact-production.up.railway.app'}/repartidor-home" style="background-color: #4acfbd; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Enviar Comprobante Ahora</a>
+                            <a href="${process.env.FRONTEND_URL || 'https://domiflex-web-production.up.railway.app'}/repartidor-home" style="background-color: #4acfbd; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Enviar Comprobante Ahora</a>
                         </div>
                         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
                         <p style="font-size: 12px; color: #8899a6; text-align: center;">MoviFlex Team</p>

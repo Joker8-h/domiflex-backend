@@ -10,7 +10,8 @@ const prisma = new PrismaClient();
 const notificacionesService = require("./NotificacionesService");
 
 const JWT_SECRET = process.env.JWT_SECRET || "secreto_super_seguro";
-const JWT_EXPIRES_IN = process.env.EXPIRE_TIME || "1d";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || process.env.EXPIRE_TIME || "1d";
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://domiflex-web-production.up.railway.app";
 
 const emailService = require("./EmailService");
 
@@ -114,16 +115,16 @@ const authService = {
 
         // 2. Resolver el Rol (String -> ID)
 
-        let nombreRol = rol || "CLIENTE";
-        let rolDb = await prisma.roles.findUnique({
+        const rolesPublicos = ["CLIENTE", "REPARTIDOR", "COMERCIO"];
+        const nombreRol = rolesPublicos.includes(String(rol || "").toUpperCase())
+            ? String(rol).toUpperCase()
+            : "CLIENTE";
+        const rolDb = await prisma.roles.findUnique({
             where: { nombre: nombreRol }
         });
 
         if (!rolDb) {
-            // Crear el rol si no existe
-            rolDb = await prisma.roles.create({
-                data: { nombre: nombreRol }
-            });
+            throw new Error("El rol solicitado no está disponible.");
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -797,7 +798,7 @@ const authService = {
             }
         });
 
-        const resetLink = `${process.env.FRONTEND_URL || 'https://moviflexconreact-production.up.railway.app'}/reset-password/${token}`;
+        const resetLink = `${FRONTEND_URL}/reset-password/${token}`;
         await emailService.enviarLinkRecuperacion(email, usuario.nombre, resetLink);
 
         return { mensaje: "Si el correo está registrado, recibirás un enlace de recuperación." };

@@ -1,7 +1,24 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient({});
 const pricingService = require("./PricingService");
-const notificacionesService = require("./NotificacionesService");
+const socketService = require("./SocketService");
+
+function anunciarPedido(pedido, titulo, mensaje) {
+    const payload = {
+        idPedido: pedido.idPedido,
+        estado: pedido.estado,
+        idCliente: pedido.idCliente,
+        idRepartidor: pedido.idRepartidor || null,
+    };
+    socketService.emitPedido(pedido.idPedido, "pedido_actualizado", payload);
+    socketService.emitPedido(pedido.idPedido, "pedido_estado", payload);
+    if (pedido.idCliente) {
+        socketService.notifyUser(pedido.idCliente, "pedido_actualizado", payload, titulo, mensaje, "PEDIDO");
+    }
+    if (pedido.idRepartidor && pedido.idRepartidor !== pedido.idCliente) {
+        socketService.notifyUser(pedido.idRepartidor, "pedido_actualizado", payload, titulo, mensaje, "PEDIDO");
+    }
+}
 
 const TRANSICIONES_VALIDAS = {
     CREADO: ["ASIGNADO", "CANCELADO"],
@@ -13,7 +30,12 @@ const TRANSICIONES_VALIDAS = {
 };
 
 const pedidosService = {
-    async crearPedido(idCliente, data) {
+    /**
+     * Precio del pedido = suma(cantidad * precio en BD) + envío.
+     * El precio que manda el cliente se ignora. Sin ítems (domicilio suelto)
+     * el total es solo la tarifa por distancia.
+     */
+    async cotizarPedido(data) {
         const latRecogida = parseFloat(data.latRecogida);
         const lngRecogida = parseFloat(data.lngRecogida);
         const latEntrega = parseFloat(data.latEntrega);
@@ -23,46 +45,107 @@ const pedidosService = {
             throw new Error("Latitud/longitud de recogida y entrega son obligatorias.");
         }
 
-        const { subtotal, precioFinal, comisionPlataforma, distanciaRecorrida } =
-            await pricingService.estimarPrecioPedido({ latRecogida, lngRecogida, latEntrega, lngEntrega });
+        const items = Array.isArray(data.items) ? data.items : [];
+        const itemsValidados = [];
+        let itemsSubtotal = 0;
 
+        if (items.length > 0) {
+            const ids = [...new Set(items.map((item) => parseInt(item.menuItemId, 10)).filter((id) => !Number.isNaN(id)))];
+            if (ids.length === 0) throw new Error("Cada ítem necesita un producto válido.");
+
+            const productos = await prisma.producto.findMany({ where: { id: { in: ids } } });
+            const porId = new Map(productos.map((p) => [p.id, p]));
+            const negocioId = data.negocioId ? parseInt(data.negocioId, 10) : null;
+
+            for (const item of items) {
+                const menuItemId = parseInt(item.menuItemId, 10);
+                const producto = porId.get(menuItemId);
+                if (!producto) throw new Error(`El producto ${menuItemId} no existe.`);
+                if (!producto.disponible) throw new Error(`${producto.nombre} no está disponible.`);
+                if (negocioId && producto.restauranteId !== negocioId) {
+                    throw new Error(`${producto.nombre} no pertenece a este negocio.`);
+                }
+                const cantidad = parseInt(item.cantidad, 10) || 1;
+                if (cantidad < 1 || cantidad > 99) throw new Error(`Cantidad inválida para ${producto.nombre}.`);
+                itemsSubtotal += producto.precio * cantidad;
+                itemsValidados.push({
+                    menuItemId,
+                    cantidad,
+                    precio: producto.precio,
+                    nombre: producto.nombre,
+                });
+            }
+        }
+
+        let negocio = null;
+        if (data.negocioId) {
+            negocio = await prisma.negocios.findUnique({ where: { id: parseInt(data.negocioId, 10) } });
+            if (!negocio || !negocio.activo) throw new Error("Negocio no encontrado.");
+            if (items.length > 0 && negocio.envioMinimo > 0 && itemsSubtotal < negocio.envioMinimo) {
+                throw new Error(`El pedido mínimo de este negocio es $${negocio.envioMinimo.toLocaleString("es-CO")}.`);
+            }
+        }
+
+        const envioQuote = await pricingService.estimarPrecioPedido({
+            latRecogida, lngRecogida, latEntrega, lngEntrega,
+        });
+
+        const envio = negocio ? Number(negocio.costoEnvio) : envioQuote.precioFinal;
+        const total = items.length > 0 ? itemsSubtotal + envio : envioQuote.precioFinal;
+
+        return {
+            itemsSubtotal,
+            envio: items.length > 0 ? envio : envioQuote.precioFinal,
+            subtotal: items.length > 0 ? itemsSubtotal : envioQuote.subtotal,
+            comisionPlataforma: envioQuote.comisionPlataforma,
+            distanciaRecorrida: envioQuote.distanciaRecorrida,
+            total,
+            precioFinal: total,
+            itemsValidados,
+            idComercio: negocio ? negocio.ownerId : (data.idComercio ? parseInt(data.idComercio, 10) : null),
+            negocioId: negocio ? negocio.id : null,
+        };
+    },
+
+    async crearPedido(idCliente, data) {
+        const cotizacion = await this.cotizarPedido(data);
         const tipoPago = data.tipoPago || "EFECTIVO";
 
         const pedido = await prisma.$transaction(async (tx) => {
             const creado = await tx.pedidos.create({
                 data: {
                     idCliente: parseInt(idCliente),
-                    idComercio: data.idComercio ? parseInt(data.idComercio) : null,
+                    idComercio: cotizacion.idComercio,
                     idRuta: data.idRuta ? parseInt(data.idRuta) : null,
                     idVehiculo: data.idVehiculo ? parseInt(data.idVehiculo) : null,
-                    negocioId: data.negocioId ? parseInt(data.negocioId) : null,
+                    negocioId: cotizacion.negocioId,
                     nombreRecogida: data.nombreRecogida || null,
                     dirRecogida: data.dirRecogida || null,
-                    latRecogida,
-                    lngRecogida,
+                    latRecogida: parseFloat(data.latRecogida),
+                    lngRecogida: parseFloat(data.lngRecogida),
                     nombreEntrega: data.nombreEntrega || null,
                     dirEntrega: data.dirEntrega || null,
-                    latEntrega,
-                    lngEntrega,
+                    latEntrega: parseFloat(data.latEntrega),
+                    lngEntrega: parseFloat(data.lngEntrega),
                     detallePedido: data.detallePedido || null,
-                    distanciaKm: distanciaRecorrida,
-                    subtotal,
-                    comisionPlataforma,
-                    total: precioFinal,
+                    distanciaKm: cotizacion.distanciaRecorrida,
+                    subtotal: cotizacion.subtotal,
+                    comisionPlataforma: cotizacion.comisionPlataforma,
+                    total: cotizacion.total,
                     tipoPago,
                     estado: "CREADO"
                 }
             });
 
-            // Crear items del pedido si se proporcionan
-            if (data.items && data.items.length > 0) {
-                const itemsData = data.items.map((item) => ({
-                    cantidad: item.cantidad || 1,
-                    precio: item.precio,
-                    pedidoId: creado.idPedido,
-                    menuItemId: item.menuItemId,
-                }));
-                await tx.pedidoItem.createMany({ data: itemsData });
+            if (cotizacion.itemsValidados.length > 0) {
+                await tx.pedidoItem.createMany({
+                    data: cotizacion.itemsValidados.map((item) => ({
+                        cantidad: item.cantidad,
+                        precio: item.precio,
+                        pedidoId: creado.idPedido,
+                        menuItemId: item.menuItemId,
+                    })),
+                });
             }
 
             await tx.pagos.create({
@@ -70,7 +153,7 @@ const pedidosService = {
                     idPedido: creado.idPedido,
                     idUsuario: parseInt(idCliente),
                     tipoPago: "PEDIDO",
-                    monto: precioFinal,
+                    monto: cotizacion.total,
                     estado: "PENDIENTE",
                     confirmacionCliente: false,
                     confirmacionRepartidor: false
@@ -80,18 +163,24 @@ const pedidosService = {
             return creado;
         });
 
-        try {
-            await notificacionesService.crearNotificacion({
-                idUsuario: parseInt(idCliente),
-                titulo: "Pedido creado",
-                mensaje: `Tu pedido #${pedido.idPedido} fue creado por $${Number(precioFinal).toLocaleString()} COP.`,
-                tipo: "PEDIDO"
-            });
-        } catch (notifError) {
-            console.error("Error al crear notificación de pedido:", notifError.message);
-        }
+        const precioFinal = cotizacion.total;
 
-        return pedido;
+        anunciarPedido(
+            pedido,
+            "Pedido creado",
+            `Tu pedido #${pedido.idPedido} fue creado por $${Number(precioFinal).toLocaleString("es-CO")} COP.`
+        );
+
+        return {
+            ...pedido,
+            desglose: {
+                itemsSubtotal: cotizacion.itemsSubtotal,
+                envio: cotizacion.envio,
+                comisionPlataforma: cotizacion.comisionPlataforma,
+                distanciaKm: cotizacion.distanciaRecorrida,
+                total: cotizacion.total,
+            },
+        };
     },
 
     async asignarRepartidor(idPedido, idRepartidor) {
@@ -101,22 +190,25 @@ const pedidosService = {
             throw new Error("Solo se puede asignar repartidor a un pedido en estado CREADO");
         }
 
+        const repartidor = await prisma.usuarios.findUnique({
+            where: { idUsuarios: parseInt(idRepartidor) },
+            include: { rol: true, vehiculos: { where: { estado: "ACTIVO" }, take: 1 } },
+        });
+        if (!repartidor || repartidor.rol?.nombre !== "REPARTIDOR") {
+            throw new Error("Solo un repartidor puede tomar este pedido.");
+        }
+
         const actualizado = await prisma.pedidos.update({
             where: { idPedido: parseInt(idPedido) },
-            data: { idRepartidor: parseInt(idRepartidor), estado: "ASIGNADO" },
+            data: {
+                idRepartidor: repartidor.idUsuarios,
+                idVehiculo: pedido.idVehiculo || repartidor.vehiculos[0]?.idVehiculos || null,
+                estado: "ASIGNADO",
+            },
             include: { cliente: { select: { nombre: true } }, repartidor: { select: { nombre: true } }, ruta: true, vehiculo: true }
         });
 
-        try {
-            await notificacionesService.crearNotificacion({
-                idUsuario: parseInt(idRepartidor),
-                titulo: "Pedido asignado",
-                mensaje: `Se te asignó el pedido #${actualizado.idPedido}.`,
-                tipo: "PEDIDO"
-            });
-        } catch (notifError) {
-            console.error("Error al crear notificación de asignación:", notifError.message);
-        }
+        anunciarPedido(actualizado, "Pedido asignado", `El pedido #${actualizado.idPedido} ya tiene domiciliario.`);
 
         return actualizado;
     },
@@ -130,10 +222,12 @@ const pedidosService = {
             throw new Error(`Transición no válida de ${pedido.estado} a ${estado}`);
         }
 
-        return await prisma.pedidos.update({
+        const actualizado = await prisma.pedidos.update({
             where: { idPedido: parseInt(idPedido) },
             data: { estado }
         });
+        anunciarPedido(actualizado, "Pedido actualizado", `El pedido #${actualizado.idPedido} ahora está ${estado}.`);
+        return actualizado;
     },
 
     async getMisPedidos(idCliente) {
@@ -147,6 +241,30 @@ const pedidosService = {
                 items: { include: { menuItem: true } },
             },
             orderBy: { creadoEn: "desc" }
+        });
+    },
+
+    async getPedidosComercio(idUsuario) {
+        const uid = parseInt(idUsuario);
+        const negocios = await prisma.negocios.findMany({
+            where: { ownerId: uid },
+            select: { id: true },
+        });
+        const ids = negocios.map((n) => n.id);
+        return await prisma.pedidos.findMany({
+            where: {
+                OR: [
+                    { idComercio: uid },
+                    ...(ids.length ? [{ negocioId: { in: ids } }] : []),
+                ],
+            },
+            include: {
+                cliente: { select: { nombre: true, telefono: true } },
+                repartidor: { select: { nombre: true } },
+                negocio: { select: { id: true, nombre: true } },
+                items: { include: { menuItem: true } },
+            },
+            orderBy: { creadoEn: "desc" },
         });
     },
 
@@ -178,7 +296,7 @@ const pedidosService = {
         });
     },
 
-    async cancelarPedido(idPedido, idUsuario) {
+    async cancelarPedido(idPedido, idUsuario, rol) {
         const pedido = await this.getById(idPedido);
         if (!pedido) throw new Error("Pedido no encontrado");
         if (pedido.estado === "ENTREGADO") {
@@ -188,10 +306,18 @@ const pedidosService = {
             throw new Error("El pedido ya está cancelado");
         }
 
-        return await prisma.pedidos.update({
+        const uid = parseInt(idUsuario);
+        const participa = pedido.idCliente === uid || pedido.idRepartidor === uid || pedido.idComercio === uid;
+        if (String(rol || "").toUpperCase() !== "ADMIN" && !participa) {
+            throw new Error("No puedes cancelar este pedido.");
+        }
+
+        const actualizado = await prisma.pedidos.update({
             where: { idPedido: parseInt(idPedido) },
             data: { estado: "CANCELADO" }
         });
+        anunciarPedido(actualizado, "Pedido cancelado", `El pedido #${actualizado.idPedido} fue cancelado.`);
+        return actualizado;
     },
 
     async obtenerPedidosPorDiaSemana(dia) {

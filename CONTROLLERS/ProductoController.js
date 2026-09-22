@@ -21,28 +21,28 @@ class ProductoController {
 
   async create(req, res) {
     try {
-      const producto = await ProductoService.create(req.body);
+      const producto = await ProductoService.create(req.body, req.user);
       res.status(201).json(producto);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      res.status(error.status || 400).json({ error: error.message });
     }
   }
 
   async update(req, res) {
     try {
-      const producto = await ProductoService.update(req.params.id, req.body);
+      const producto = await ProductoService.update(req.params.id, req.body, req.user);
       res.json(producto);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      res.status(error.status || 400).json({ error: error.message });
     }
   }
 
   async delete(req, res) {
     try {
-      await ProductoService.delete(req.params.id);
+      await ProductoService.delete(req.params.id, req.user);
       res.json({ message: "Producto eliminado" });
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      res.status(error.status || 400).json({ error: error.message });
     }
   }
 

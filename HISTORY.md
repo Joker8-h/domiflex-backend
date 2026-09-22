@@ -148,27 +148,20 @@ Plataforma de delivery para Popayán, Colombia. Originalmente "Moviflex" (ride-s
 
 ## 5. Lo que falta por hacer
 
-### Prioridad Alta
-- [ ] **Admin React**: estadísticas, gráficos de ventas, gestión de reportes
-- [ ] **Repartidor Web**: dashboard con pedidos activos, mapa en tiempo real
-- [ ] **Carrito completo**: resumen, métodos de pago, confirmación
-- [ ] **Búsqueda**: filtro por categoría, precio, distancia
-- [ ] **Notificaciones push**: Firebase Cloud Messaging para Android
-- [ ] **Pagos**: integración con pasarela (Nequi/Daviplata/PSE)
+### Hecho en el cierre operable
+- [x] **Precio**: total = ítems validados en BD + envío del negocio (`POST /pedidos/cotizar`)
+- [x] **Carrito**: persiste en el navegador y muestra el total del servidor
+- [x] **Tracking**: mapa con recogida, entrega y GPS del repartidor; el estado se emite por socket
+- [x] **Comercio**: `/comercio` con menú y pedidos; solo el dueño edita su negocio
+- [x] **Efectivo**: el cliente confirma en tracking y el repartidor confirma después (`CONFIRMADO_CLIENTE` → `COMPLETADO`)
+- [x] **Registro**: solo `CLIENTE`, `REPARTIDOR` o `COMERCIO`; no se puede crear `ADMIN`
+- [x] **Seed**: roles, cuentas demo y Saber Casero Popayán en `prisma/seed.js` (hay que correr `npx prisma db seed` con `DATABASE_URL`)
+- [x] **Android mínimo**: el login guarda el token, el checkout usa GPS y el tracking consulta el estado
 
-### Prioridad Media
-- [ ] **Tracking en tiempo real**: WebSocket para ubicación del repartidor
-- [ ] **Fotos reales seed**: más negocios con imágenes Unsplash
-- [ ] **Catálogo admin**: CRUD completo de productos con imágenes
-- [ ] **OSRM externo**: arreglar o consolidar con el interno
-- [ ] **Facial recognition**: verificar `/register-face` y `/verify-face` en prod
-
-### Prioridad Baja
-- [ ] **Tests**: cubrir controllers faltantes, subir cobertura
-- [ ] **CI/CD**: GitHub Actions para tests automáticos en PR
-- [ ] **Monitoring**: alerts en Railway para servicios caídos
-- [ ] **SEO**: meta tags, sitemap, Open Graph para landing
-- [ ] **PWA**: service worker para experiencia offline en web
+### Sigue pendiente
+- [ ] **Pagos**: pasarela Nequi/Daviplata/PSE
+- [ ] **Notificaciones push**: Firebase Cloud Messaging en Android
+- [ ] **Repartidor Android**: las pantallas de conductor siguen siendo layouts vacíos; el repartidor opera en la web
 
 ---
 
