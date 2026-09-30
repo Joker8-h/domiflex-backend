@@ -56,6 +56,7 @@ async function main() {
     { nombre: "Admin Rapitipica", email: "admin@rapitipica.com", password: "Admin1234!", rol: "ADMIN" },
     { nombre: "Cliente Demo", email: "cliente@rapitipica.com", password: "Cliente1234!", rol: "CLIENTE" },
     { nombre: "Sabor Típico Popayán", email: "demo@rapitipica.com", password: "Demo1234!", rol: "COMERCIO" },
+    { nombre: "Repartidor Rapitipica", email: "repartidor@rapitipica.com", password: "Repartidor1234!", rol: "REPARTIDOR" },
     { nombre: "Admin DomiFlex", email: "admin@domiflex.com", password: "Admin1234!", rol: "ADMIN" },
     { nombre: "Cliente Demo DomiFlex", email: "cliente@domiflex.com", password: "Cliente1234!", rol: "CLIENTE" },
   ];
@@ -76,6 +77,28 @@ async function main() {
       create: data,
     });
     console.log(`  ✅ ${cuenta.email}`);
+  }
+
+  // Asignar vehículo activo al repartidor demo
+  if (usuarios.REPARTIDOR) {
+    const vehiculoExistente = await prisma.vehiculos.findFirst({
+      where: { idUsuario: usuarios.REPARTIDOR.idUsuarios }
+    });
+    if (!vehiculoExistente) {
+      await prisma.vehiculos.create({
+        data: {
+          idUsuario: usuarios.REPARTIDOR.idUsuarios,
+          marca: "Yamaha",
+          modelo: "FZ 25",
+          placa: "RAP123",
+          tipo: "MOTO",
+          capacidad: 25,
+          estado: "ACTIVO",
+          placaValidada: true
+        }
+      });
+      console.log("  ✅ Vehículo demo para Repartidor: RAP123");
+    }
   }
 
   const categoria = await prisma.categoriasNegocio.findUnique({ where: { nombre: "Restaurantes" } });
