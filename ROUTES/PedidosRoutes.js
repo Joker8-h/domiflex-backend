@@ -22,7 +22,7 @@ router.post('/:id/asignar', authorize(['REPARTIDOR', 'ADMIN', 'COMERCIO']), pedi
 router.post('/:id/ubicacion', authorize(['REPARTIDOR']), pedidosController.publicarUbicacion);
 
 // Cambiar estado (ASIGNADO, RECOGIENDO, EN_CAMINO, ENTREGADO)
-router.post('/:id/estado', authorize(['REPARTIDOR', 'ADMIN']), pedidosController.cambiarEstado);
+router.post('/:id/estado', authorize(['REPARTIDOR', 'ADMIN', 'COMERCIO']), pedidosController.cambiarEstado);
 
 // Cancelar pedido
 router.post('/:id/cancelar', authorize(['REPARTIDOR', 'CLIENTE', 'COMERCIO', 'ADMIN']), pedidosController.cancelar);
@@ -32,6 +32,9 @@ router.get('/:id/estimar-precio', pedidosController.estimarPrecio);
 
 // Estadísticas de pedidos por día (antes de /:id para evitar colisión)
 router.get('/dia/:dia', authorize(['ADMIN']), pedidosController.getPedidosPorDia);
+
+// Todos los pedidos para el monitor del Admin
+router.get('/admin/todos', authorize(['ADMIN']), pedidosController.getAllAdmin);
 
 // Ver detalle pedido
 router.get('/:id', pedidosController.getById);

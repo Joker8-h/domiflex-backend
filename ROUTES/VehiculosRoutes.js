@@ -16,26 +16,10 @@ router.get('/mis-vehiculos', authorize(['REPARTIDOR']), vehiculosController.getM
 // Ver todos los vehículos: Solo Admin
 router.get('/', authorize(['ADMIN']), vehiculosController.getAll);
 
-// Ver detalle vehículo: Admin y Repartidor
-router.get('/:id', authorize(['REPARTIDOR', 'ADMIN']), vehiculosController.getById);
-
-// Eliminar vehículo
-router.delete('/:id', authorize(['REPARTIDOR', 'ADMIN']), vehiculosController.delete);
-
-// Activar/Desactivar vehículo
-router.patch('/:id/estado', authorize(['REPARTIDOR', 'ADMIN']), vehiculosController.cambiarEstado);
-
-// Validar placa (Admin)
-router.patch('/:id/validar-placa', authorize(['ADMIN']), vehiculosController.validarPlacaAdmin);
-
 // Extraer placa de foto (Solo repartidores y Admin)
 router.post('/extraer-placa', authorize(['REPARTIDOR', 'ADMIN']), vehiculosController.extraerPlaca);
 
-// --- FLUJO DE APROBACIÓN DE CAMBIOS ---
-
-// Solicitar cambio de vehículo: Solo Repartidores
-router.post('/:id/solicitar-cambio', authorize(['REPARTIDOR']), vehiculosController.solicitarCambio);
-
+// --- FLUJO DE APROBACIÓN DE CAMBIOS (Rutas estáticas antes de /:id) ---
 // Ver solicitudes de cambio: Solo Admin
 router.get('/solicitudes/pendientes', authorize(['ADMIN']), vehiculosController.getSolicitudesCambio);
 
@@ -44,5 +28,20 @@ router.get('/solicitudes/pendientes/count', authorize(['ADMIN']), vehiculosContr
 
 // Procesar solicitud de cambio: Solo Admin
 router.patch('/solicitudes/:id/procesar', authorize(['ADMIN']), vehiculosController.procesarSolicitud);
+
+// Solicitar cambio de vehículo: Solo Repartidores
+router.post('/:id/solicitar-cambio', authorize(['REPARTIDOR']), vehiculosController.solicitarCambio);
+
+// Activar/Desactivar vehículo
+router.patch('/:id/estado', authorize(['REPARTIDOR', 'ADMIN']), vehiculosController.cambiarEstado);
+
+// Validar placa (Admin)
+router.patch('/:id/validar-placa', authorize(['ADMIN']), vehiculosController.validarPlacaAdmin);
+
+// Ver detalle vehículo: Admin y Repartidor
+router.get('/:id', authorize(['REPARTIDOR', 'ADMIN']), vehiculosController.getById);
+
+// Eliminar vehículo
+router.delete('/:id', authorize(['REPARTIDOR', 'ADMIN']), vehiculosController.delete);
 
 module.exports = router;

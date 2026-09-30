@@ -5,6 +5,7 @@ const role = require("../MIDDLEWARE/role.middleware");
 const NegociosController = require("../CONTROLLERS/NegociosController");
 
 // Importante: rutas específicas ANTES de /:id para evitar shadowing
+router.get("/admin/todos", auth, role(["ADMIN"]), NegociosController.getAllAdmin);
 router.get("/", NegociosController.getAll);
 router.get("/tipo/:tipo", NegociosController.getPorTipo);
 router.get("/mis-negocios", auth, NegociosController.getMisNegocios);

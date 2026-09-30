@@ -1,6 +1,15 @@
 const NegociosService = require("../SERVICES/NegociosService");
 
 class NegociosController {
+  async getAllAdmin(req, res) {
+    try {
+      const negocios = await NegociosService.getAllAdmin();
+      res.json(negocios);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   async getAll(req, res) {
     try {
       const { tipo, categoriaId, busqueda } = req.query;

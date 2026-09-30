@@ -1,6 +1,5 @@
 const crypto = require("crypto");
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient({});
+const prisma = require("../lib/prisma");
 
 function configurado() {
     return Boolean(process.env.WOMPI_PUBLIC_KEY && process.env.WOMPI_INTEGRITY_SECRET);
@@ -78,10 +77,34 @@ const wompiService = {
         if (!tx || tx.status !== "APPROVED") return { ok: true, ignored: true };
         const match = String(tx.reference || "").match(/^DOMIFLEX-(\d+)-/);
         if (!match) return { ok: true, ignored: true };
+        const idPedido = Number(match[1]);
+
         await prisma.pagos.updateMany({
-            where: { idPedido: Number(match[1]), tipoPago: "PEDIDO" },
-            data: { estado: "COMPLETADO" },
+            where: { idPedido, tipoPago: "PEDIDO" },
+            data: { estado: "COMPLETADO", confirmacionCliente: true }
         });
+
+        await prisma.pedidos.updateMany({
+            where: { idPedido },
+            data: { tipoPago: "TRANSFERENCIA" }
+        });
+
+        // Notificar en tiempo real por WebSocket
+        try {
+            const socketService = require("./SocketService");
+            socketService.emitPedido(idPedido, "pago_completado", {
+                idPedido,
+                estado: "COMPLETADO",
+                tipoPago: "TRANSFERENCIA"
+            });
+            socketService.emitPedido(idPedido, "pedido_actualizado", {
+                idPedido,
+                pagoEstado: "COMPLETADO"
+            });
+        } catch (sockErr) {
+            console.error("Error al emitir pago por socket:", sockErr.message);
+        }
+
         return { ok: true };
     },
 };

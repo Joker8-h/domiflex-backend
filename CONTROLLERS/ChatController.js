@@ -18,7 +18,17 @@ const chatController = {
             const mensaje = await chatService.enviarMensaje(data);
             res.json(mensaje);
         } catch (error) {
-            res.json({ error: error.message });
+            res.status(400).json({ error: error.message });
+        }
+    },
+
+    async getConversacionByPedido(req, res) {
+        try {
+            const { idPedido } = req.params;
+            const conversacion = await chatService.getConversacionByPedido(idPedido, req.user.id);
+            res.json(conversacion);
+        } catch (error) {
+            res.status(400).json({ error: error.message });
         }
     },
 

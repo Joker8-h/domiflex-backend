@@ -1,5 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient({});
+const prisma = require("../lib/prisma");
 const pricingService = require("./PricingService");
 const socketService = require("./SocketService");
 const pushService = require("./PushService");
@@ -10,6 +9,11 @@ function anunciarPedido(pedido, titulo, mensaje) {
         estado: pedido.estado,
         idCliente: pedido.idCliente,
         idRepartidor: pedido.idRepartidor || null,
+        idComercio: pedido.idComercio || null,
+        total: pedido.total || null,
+        dirEntrega: pedido.dirEntrega || null,
+        negocioId: pedido.negocioId || null,
+        negocioNombre: pedido.negocio?.nombre || null
     };
     socketService.emitPedido(pedido.idPedido, "pedido_actualizado", payload);
     socketService.emitPedido(pedido.idPedido, "pedido_estado", payload);
@@ -19,8 +23,18 @@ function anunciarPedido(pedido, titulo, mensaje) {
     if (pedido.idRepartidor && pedido.idRepartidor !== pedido.idCliente) {
         socketService.notifyUser(pedido.idRepartidor, "pedido_actualizado", payload, titulo, mensaje, "PEDIDO");
     }
+    if (pedido.idComercio && pedido.idComercio !== pedido.idCliente) {
+        socketService.notifyUser(pedido.idComercio, "pedido_actualizado", payload, titulo, mensaje, "PEDIDO");
+        socketService.notifyUser(pedido.idComercio, "nuevo_pedido_comercio", payload, titulo, mensaje, "PEDIDO");
+    }
+
+    // Broadcast a repartidores en línea si el pedido está recién creado y busca repartidor
+    if (pedido.estado === "CREADO" && !pedido.idRepartidor) {
+        socketService.emitToRole("REPARTIDOR", "nuevo_pedido_disponible", payload);
+    }
+
     pushService.enviarAUsuarios(
-        [pedido.idCliente, pedido.idRepartidor],
+        [pedido.idCliente, pedido.idRepartidor, pedido.idComercio].filter(Boolean),
         titulo,
         mensaje,
         { idPedido: String(pedido.idPedido), estado: pedido.estado || "" }
@@ -191,32 +205,37 @@ const pedidosService = {
     },
 
     async asignarRepartidor(idPedido, idRepartidor) {
-        const pedido = await prisma.pedidos.findUnique({ where: { idPedido: parseInt(idPedido) } });
-        if (!pedido) throw new Error("Pedido no encontrado");
-        if (pedido.estado !== "CREADO") {
-            throw new Error("Solo se puede asignar repartidor a un pedido en estado CREADO");
-        }
+        const pid = parseInt(idPedido);
+        const rid = parseInt(idRepartidor);
 
         const repartidor = await prisma.usuarios.findUnique({
-            where: { idUsuarios: parseInt(idRepartidor) },
+            where: { idUsuarios: rid },
             include: { rol: true, vehiculos: { where: { estado: "ACTIVO" }, take: 1 } },
         });
         if (!repartidor || repartidor.rol?.nombre !== "REPARTIDOR") {
             throw new Error("Solo un repartidor puede tomar este pedido.");
         }
 
-        const actualizado = await prisma.pedidos.update({
-            where: { idPedido: parseInt(idPedido) },
+        // Actualización atómica con condición CREADO e idRepartidor nulo
+        const resultado = await prisma.pedidos.updateMany({
+            where: {
+                idPedido: pid,
+                estado: "CREADO",
+                idRepartidor: null
+            },
             data: {
                 idRepartidor: repartidor.idUsuarios,
-                idVehiculo: pedido.idVehiculo || repartidor.vehiculos[0]?.idVehiculos || null,
+                idVehiculo: repartidor.vehiculos[0]?.idVehiculos || null,
                 estado: "ASIGNADO",
-            },
-            include: { cliente: { select: { nombre: true } }, repartidor: { select: { nombre: true } }, ruta: true, vehiculo: true }
+            }
         });
 
-        anunciarPedido(actualizado, "Pedido asignado", `El pedido #${actualizado.idPedido} ya tiene domiciliario.`);
+        if (resultado.count === 0) {
+            throw new Error("El pedido ya fue tomado por otro repartidor o no está disponible.");
+        }
 
+        const actualizado = await this.getById(pid);
+        anunciarPedido(actualizado, "Pedido asignado", `El pedido #${actualizado.idPedido} ya tiene domiciliario.`);
         return actualizado;
     },
 
@@ -372,6 +391,24 @@ const pedidosService = {
         } catch (e) {
             return [];
         }
+    },
+
+    async getAllAdmin(filtros = {}) {
+        const where = {};
+        if (filtros.estado) {
+            where.estado = filtros.estado;
+        }
+        return await prisma.pedidos.findMany({
+            where,
+            include: {
+                cliente: { select: { idUsuario: true, nombre: true, email: true, telefono: true } },
+                repartidor: { select: { idUsuario: true, nombre: true, email: true, telefono: true } },
+                negocio: { select: { id: true, nombre: true, direccion: true, telefono: true } },
+                items: { include: { menuItem: true } },
+            },
+            orderBy: { creadoEn: "desc" },
+            take: 100,
+        });
     }
 };
 

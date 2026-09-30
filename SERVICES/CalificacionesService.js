@@ -1,19 +1,50 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient({
-});
+const prisma = require("../lib/prisma");
 
 const calificacionesService = {
     async create(data) {
-        // Validar que el usuario sea parte del pedido (pendiente)
-        return await prisma.calificaciones.create({
+        const calificacion = await prisma.calificaciones.create({
             data: {
                 idPedido: parseInt(data.idPedido),
                 idCalificador: parseInt(data.idCalificador),
                 idCalificado: parseInt(data.idCalificado),
                 puntuacion: parseInt(data.puntuacion),
-                comentario: data.comentario
+                comentario: data.comentario || null
             }
         });
+
+        // Actualizar métricas del negocio si aplica
+        try {
+            const pedido = await prisma.pedidos.findUnique({
+                where: { idPedido: parseInt(data.idPedido) },
+                select: { negocioId: true, idComercio: true }
+            });
+
+            if (pedido?.negocioId) {
+                const todas = await prisma.calificaciones.findMany({
+                    where: {
+                        pedido: { negocioId: pedido.negocioId },
+                        idCalificado: pedido.idComercio || undefined
+                    },
+                    select: { puntuacion: true }
+                });
+                if (todas.length > 0) {
+                    const total = todas.length;
+                    const suma = todas.reduce((acc, c) => acc + c.puntuacion, 0);
+                    const promedio = parseFloat((suma / total).toFixed(2));
+                    await prisma.negocios.update({
+                        where: { id: pedido.negocioId },
+                        data: {
+                            calificacion: promedio,
+                            totalCalificaciones: total
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Error al actualizar rating del negocio:", err.message);
+        }
+
+        return calificacion;
     },
 
     async getPromedioUsuario(idUsuario) {

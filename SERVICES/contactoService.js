@@ -7,18 +7,23 @@ apiKey.apiKey = process.env.BREVO_API_KEY;
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
 const enviarCorreoContacto = async ({ nombre, correo, tipo, mensaje }) => {
+  if (!process.env.BREVO_API_KEY) {
+    console.warn(`[contactoService] BREVO_API_KEY no configurado. Mensaje simulado de ${nombre} (${correo})`);
+    return { simulado: true };
+  }
 
+  const senderEmail = process.env.EMAIL_USER || "contacto@domiflex.com";
   const email = {
     sender: {
-      name: "Formulario Web",
-      email: process.env.EMAIL_USER
+      name: "Formulario Web DomiFlex",
+      email: senderEmail
     },
     to: [{
-      email: process.env.EMAIL_USER
+      email: senderEmail
     }],
     subject: `Nuevo mensaje - ${tipo}`,
     htmlContent: `
-      <h2>Nuevo mensaje desde la web</h2>
+      <h2>Nuevo mensaje desde la web DomiFlex</h2>
       <p><strong>Nombre:</strong> ${nombre}</p>
       <p><strong>Correo:</strong> ${correo}</p>
       <p><strong>Tipo:</strong> ${tipo}</p>

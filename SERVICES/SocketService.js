@@ -2,8 +2,7 @@ const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "secreto_super_seguro";
 const notificacionesService = require("./NotificacionesService");
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../lib/prisma");
 
 class SocketService {
     constructor() {
@@ -132,9 +131,39 @@ class SocketService {
                 });
             });
 
+            // Evento para chat en tiempo real
+            socket.on("send_chat_message", async (data) => {
+                const { idPedido, idConversacion, mensaje } = data || {};
+                if (!mensaje || (!idPedido && !idConversacion)) return;
+                try {
+                    const chatService = require("./ChatService");
+                    const nuevoMensaje = await chatService.enviarMensaje({
+                        idConversacion,
+                        idPedido,
+                        idRemitente: id,
+                        mensaje
+                    });
+                    if (idPedido) {
+                        this.io.to(`pedido_${idPedido}`).emit("nuevo_mensaje", nuevoMensaje);
+                    }
+                } catch (err) {
+                    console.error("Error al procesar mensaje de chat por socket:", err.message);
+                }
+            });
+
         });
 
         console.log("Socket.io inicializado correctamente");
+    }
+
+    emitToRole(role, event, data) {
+        if (!this.io || !role) return;
+        const target = String(role).toUpperCase();
+        for (const [, userInfo] of this.connectedUsers.entries()) {
+            if (String(userInfo.role).toUpperCase() === target) {
+                this.io.to(userInfo.socketId).emit(event, data);
+            }
+        }
     }
 
     async notifyAdmins(event, data, dbTitle, dbMessage) {

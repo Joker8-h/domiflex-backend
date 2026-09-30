@@ -1,6 +1,6 @@
 const axios = require("axios");
 
-const OPTIMIZER_URL = process.env.OPTIMIZER_URL || "";
+const OPTIMIZER_URL = process.env.OPTIMIZER_URL || "https://route-optimizer-production-7e60.up.railway.app";
 const OSRM_BASE_URL = (process.env.OSRM_BASE_URL || "https://domiflex-osrm-production.up.railway.app").replace(/\/$/, "");
 
 const PricingService = {

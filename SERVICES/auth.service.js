@@ -1,4 +1,3 @@
-const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const dns = require('dns').promises;
@@ -6,7 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 require('dotenv').config();
 
-const prisma = new PrismaClient();
+const prisma = require("../lib/prisma");
 const notificacionesService = require("./NotificacionesService");
 
 const JWT_SECRET = process.env.JWT_SECRET || "secreto_super_seguro";
@@ -154,7 +153,7 @@ const authService = {
         try {
             await notificacionesService.crearNotificacion({
                 idUsuario: newUsuario.idUsuarios,
-                titulo: "¡Bienvenido a MOVI!",
+                titulo: "¡Bienvenido a DomiFlex!",
                 mensaje: `Hola ${newUsuario.nombre}, gracias por registrarte. ¡Esperamos que disfrutes de tus pedidos!`,
                 tipo: "SISTEMA"
             });
@@ -626,7 +625,7 @@ const authService = {
                     try {
                         await notificacionesService.crearNotificacion({
                             idUsuario: usuario.idUsuarios,
-                            titulo: "¡Bienvenido a MOVI!",
+                            titulo: "¡Bienvenido a DomiFlex!",
                             mensaje: `Hola ${usuario.nombre}, gracias por registrarte con Google.`,
                             tipo: "SISTEMA"
                         });
@@ -726,7 +725,7 @@ const authService = {
                     try {
                         await notificacionesService.crearNotificacion({
                             idUsuario: usuario.idUsuarios,
-                            titulo: "¡Bienvenido a MOVI!",
+                            titulo: "¡Bienvenido a DomiFlex!",
                             mensaje: `Hola ${usuario.nombre}, gracias por registrarte con Google.`,
                             tipo: "SISTEMA"
                         });

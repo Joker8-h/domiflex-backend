@@ -1,8 +1,7 @@
 const vehiculosService = require("../SERVICES/VehiculosService");
 const cloudinaryService = require("../SERVICES/CloudinaryService");
 const aiService = require("../SERVICES/AiObjectRecognitionService");
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../lib/prisma");
 
 const vehiculosController = {
     async create(req, res) {

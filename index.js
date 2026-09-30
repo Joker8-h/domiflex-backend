@@ -73,8 +73,22 @@ app.use('/api/negocios', negociosRoutes);
 app.use('/api/productos', productoRoutes);
 app.use('/api/pedido-items', pedidoItemsRoutes);
 
+// Manejador 404 para rutas API no encontradas
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: `Ruta ${req.originalUrl} no encontrada.` });
+    }
+    next();
+});
 
-
+// Middleware Global de Manejo de Errores
+app.use((err, req, res, next) => {
+    console.error("Error global no capturado:", err);
+    const status = err.status || err.statusCode || 500;
+    res.status(status).json({
+        error: err.message || 'Error interno del servidor'
+    });
+});
 
 const http = require('http');
 const server = http.createServer(app);

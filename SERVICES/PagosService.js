@@ -1,6 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient({
-});
+const prisma = require("../lib/prisma");
 const notificacionesService = require("./NotificacionesService");
 
 function rolDe(user) {
@@ -120,13 +118,25 @@ const pagosService = {
 
         const nuevoEstado = pago.confirmacionRepartidor ? "COMPLETADO" : "CONFIRMADO_CLIENTE";
 
-        return await prisma.pagos.update({
+        const actualizado = await prisma.pagos.update({
             where: { idPago: parseInt(idPago) },
             data: {
                 confirmacionCliente: true,
                 estado: nuevoEstado
             }
         });
+
+        try {
+            const socketService = require("./SocketService");
+            socketService.emitPedido(pago.idPedido, "pago_actualizado", actualizado);
+            if (pago.pedido?.idRepartidor) {
+                socketService.notifyUser(pago.pedido.idRepartidor, "pago_actualizado", actualizado, "Pago Confirmado por Cliente", `El cliente ha confirmado el pago en efectivo del pedido #${pago.idPedido}.`, "PAGO");
+            }
+        } catch (e) {
+            console.error("Error al emitir evento pago_actualizado:", e.message);
+        }
+
+        return actualizado;
     },
 
     async confirmarRepartidor(idPago, user) {
@@ -138,13 +148,26 @@ const pagosService = {
         if (!pago.confirmacionCliente) {
             denegar("El cliente aún no ha confirmado el pago", 400);
         }
-        return await prisma.pagos.update({
+        const actualizado = await prisma.pagos.update({
             where: { idPago: parseInt(idPago) },
             data: {
                 confirmacionRepartidor: true,
                 estado: "COMPLETADO"
             }
         });
+
+        try {
+            const socketService = require("./SocketService");
+            socketService.emitPedido(pago.idPedido, "pago_actualizado", actualizado);
+            socketService.emitPedido(pago.idPedido, "pago_completado", actualizado);
+            if (pago.pedido?.idCliente) {
+                socketService.notifyUser(pago.pedido.idCliente, "pago_completado", actualizado, "Pago en Efectivo Completado", `El domiciliario ha confirmado la recepción del dinero del pedido #${pago.idPedido}.`, "PAGO");
+            }
+        } catch (e) {
+            console.error("Error al emitir evento pago_completado:", e.message);
+        }
+
+        return actualizado;
     }
 };
 

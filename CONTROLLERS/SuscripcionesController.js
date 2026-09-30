@@ -10,9 +10,9 @@ const suscripcionesController = {
     async createPlan(req, res) {
         try {
             const plan = await suscripcionesService.createPlan(req.body);
-            res.json(plan);
+            res.status(201).json(plan);
         } catch (error) {
-            res.json({ error: error.message });
+            res.status(400).json({ error: error.message });
         }
     },
 
@@ -21,7 +21,7 @@ const suscripcionesController = {
             const planes = await suscripcionesService.getPlanes();
             res.json(planes);
         } catch (error) {
-            res.json({ error: error.message });
+            res.status(500).json({ error: error.message });
         }
     },
 
@@ -30,9 +30,9 @@ const suscripcionesController = {
             const idUsuario = req.user.id;
             const data = { ...req.body, idUsuario };
             const suscripcion = await suscripcionesService.suscribirse(data);
-            res.json(suscripcion);
+            res.status(201).json(suscripcion);
         } catch (error) {
-            res.json({ error: error.message });
+            res.status(400).json({ error: error.message });
         }
     },
 
@@ -42,7 +42,7 @@ const suscripcionesController = {
             const suscripcion = await suscripcionesService.getMiSuscripcion(idUsuario);
             res.json(suscripcion || { message: "No tienes una suscripción activa" });
         } catch (error) {
-            res.json({ error: error.message });
+            res.status(500).json({ error: error.message });
         }
     },
 

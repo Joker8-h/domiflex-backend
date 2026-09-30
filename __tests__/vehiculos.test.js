@@ -11,7 +11,10 @@ jest.mock('../SERVICES/VehiculosService', () => ({
     getById: jest.fn().mockImplementation((id) => {
         if (id === '999') return Promise.resolve(null);
         return Promise.resolve({ idVehiculos: id, marca: 'Toyota' });
-    })
+    }),
+    getSolicitudesCambio: jest.fn().mockResolvedValue([
+        { id: 1, idVehiculo: 10, estado: 'PENDIENTE', motivo: 'Cambio de moto' }
+    ])
 }));
 jest.mock('../SERVICES/CloudinaryService', () => ({
     subirImagen: jest.fn().mockResolvedValue('http://imagen.cloudinary.com/test.jpg')
@@ -19,6 +22,12 @@ jest.mock('../SERVICES/CloudinaryService', () => ({
 
 const testToken = jwt.sign(
     { id: 1, email: 'repartidor@test.com', nombre: 'Test', idRol: 2, rol: 'REPARTIDOR' },
+    process.env.JWT_SECRET || 'secreto_super_seguro',
+    { expiresIn: '1h' }
+);
+
+const adminToken = jwt.sign(
+    { id: 99, email: 'admin@test.com', nombre: 'Admin', idRol: 1, rol: 'ADMIN' },
     process.env.JWT_SECRET || 'secreto_super_seguro',
     { expiresIn: '1h' }
 );
@@ -55,5 +64,23 @@ describe('Pruebas Estructurales de Validación - Vehículos', () => {
             
         expect(responseFallido.status).toBe(404);
         expect(responseFallido.body.error).toBe("Vehículo no encontrado");
+    });
+
+    it('Debería rechazar solicitudes de cambio pendientes a usuarios no-admin (403)', async () => {
+        const res = await request(app)
+            .get('/api/vehiculos/solicitudes/pendientes')
+            .set('Authorization', `Bearer ${testToken}`);
+
+        expect(res.status).toBe(403);
+    });
+
+    it('Debería permitir al ADMIN listar solicitudes pendientes sin ser interceptado por /:id (200)', async () => {
+        const res = await request(app)
+            .get('/api/vehiculos/solicitudes/pendientes')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body[0]).toHaveProperty('motivo', 'Cambio de moto');
     });
 });

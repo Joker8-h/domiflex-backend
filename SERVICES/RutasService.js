@@ -1,6 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient({
-});
+const prisma = require("../lib/prisma");
 
 const rutasService = {
     // Crear una nueva ruta
@@ -174,7 +172,7 @@ const rutasService = {
     },
 
     async calcularRutasOptimas(origen, destino, preferencia = 'FASTEST', k = 3) {
-        const OPTIMIZER_URL = process.env.OPTIMIZER_URL || '';
+        const OPTIMIZER_URL = process.env.OPTIMIZER_URL || 'https://route-optimizer-production-7e60.up.railway.app';
         if (!OPTIMIZER_URL) throw new Error("OPTIMIZER_URL no está configurada.");
         try {
             const response = await fetch(`${OPTIMIZER_URL}/route-options`, {

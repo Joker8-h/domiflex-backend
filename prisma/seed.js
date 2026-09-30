@@ -53,9 +53,11 @@ async function main() {
   const rolPorNombre = async (nombre) => prisma.roles.findUnique({ where: { nombre } });
 
   const cuentas = [
+    { nombre: "Admin Rapitipica", email: "admin@rapitipica.com", password: "Admin1234!", rol: "ADMIN" },
+    { nombre: "Cliente Demo", email: "cliente@rapitipica.com", password: "Cliente1234!", rol: "CLIENTE" },
+    { nombre: "Sabor Típico Popayán", email: "demo@rapitipica.com", password: "Demo1234!", rol: "COMERCIO" },
     { nombre: "Admin DomiFlex", email: "admin@domiflex.com", password: "Admin1234!", rol: "ADMIN" },
-    { nombre: "Cliente Demo", email: "cliente@domiflex.com", password: "Cliente1234!", rol: "CLIENTE" },
-    { nombre: "Saber Casero", email: "demo@domiflex.com", password: "Demo1234!", rol: "COMERCIO" },
+    { nombre: "Cliente Demo DomiFlex", email: "cliente@domiflex.com", password: "Cliente1234!", rol: "CLIENTE" },
   ];
 
   const usuarios = {};

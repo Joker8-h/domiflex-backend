@@ -1,7 +1,16 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../lib/prisma");
 
 class NegociosService {
+  async getAllAdmin() {
+    return prisma.negocios.findMany({
+      include: {
+        categoria: true,
+        owner: { select: { idUsuarios: true, nombre: true, email: true, telefono: true } },
+        _count: { select: { productos: true, pedidos: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
   async getAll(filtros = {}) {
     const where = { activo: true };
 

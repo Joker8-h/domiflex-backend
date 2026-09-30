@@ -20,4 +20,7 @@ router.get('/conversaciones/:id', chatController.getConversacionById);
 // Ver mensajes de una conversacion
 router.get('/conversaciones/:id/mensajes', chatController.getMensajes);
 
+// Obtener o inicializar conversacion de un pedido directo
+router.get('/pedido/:idPedido', chatController.getConversacionByPedido);
+
 module.exports = router;
